@@ -1,0 +1,10 @@
+// Definitions originating from configuration
+#define GridRipper_VERSION_MAJOR @GridRipper_VERSION_MAJOR@
+#define GridRipper_VERSION_MINOR @GridRipper_VERSION_MINOR@
+#define GridRipper_VERSION_PATCH @GridRipper_VERSION_PATCH@
+
+#define WHATEVER @USE_STL@
+
+#define Gripper_VERSION_MAJOR @Gripper_VERSION_MAJOR@
+#define Gripper_VERSION_MINOR @Gripper_VERSION_MINOR@
+#define Gripper_VERSION_PATCH @Gripper_VERSION_PATCH@

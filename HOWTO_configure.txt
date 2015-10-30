@@ -1,0 +1,57 @@
+################################################
+#                                              #
+# Cmake HOWTO for the GridRipper library suite #
+#                                              #
+################################################
+
+# 0) Pre-requisites to the GridRipper library include
+#
+# a) C++11 conformant compiler (at least GCC 4.7, Clang 3.2, MSVC 12 (Visual Studio 2013) advised)
+#
+# b) For OpenCL support appropriate development files installed
+#
+# c) For cluster support MPI development files installed (OpenMPI or MSMPI suggested)
+#
+# d) For visualizer support Qt 5.2 development files installed
+#
+# 1) Create a directory in which you would like to build the library out-of-source
+#
+# 2) From that directory, issue the following command:
+#
+#    LINUX:   cmake -G "Unix Makefiles" <...> <PATH_TO_SOURCE>
+#
+#    WINDOWS: cmake -G "NMake Makefiles" <...> <PATH_TO_SOURCE>
+#
+# where:
+#
+# a) <PATH_TO_SOURCE> denotes the relative or absolute path to the source root
+#
+# b) <...> denotes possible build options. These options are (with their respective default values):
+#
+#    -D USE_STL:BOOL=ON                  Build the STL compute back-end (ON)
+#
+#    -D USE_OPENCL:BOOL=ON               Build the OpenCL compute back-end (OFF)
+#
+#    -D USE_AMP:BOOL=ON                  Build the C++AMP compute back-end (OFF) // Unimplemented //
+#
+#    -D USE_BOLT:BOOL=ON                 Build the Bolt compute back-end (OFF)   // Unimplemented //
+#
+#    -D BUILD_CLUSTER_SUPPORT:BOOL=ON    Build with cluster support (OFF)        // Unimplemented //
+#
+#    -D BUILD_VISUALIZER_SUPPORT:BOOL=ON Build with visualizing support (OFF)    // Unimplemented //
+#
+#    -D BUILD_EXAMPLES:BOOL=ON           Build examples (OFF)
+#
+#    -D BUILD_TESTS:BOOL=ON              Build unit tests (OFF)
+#
+# 3) Start compilation by issuing
+#
+#    LINUX:   make -j <CORE_COUNT>
+#
+#    WINDOWS: nmake
+#
+# 4) If unit tests were built, they can be run using
+#
+#    LINUX:   ctest
+#
+#    WINDOWS: ctest
