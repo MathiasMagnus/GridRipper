@@ -146,17 +146,17 @@ namespace Multipole
                 return_type at(index_type i)        const
                 {
                     // Find inside the sorted sparse matrix the first element that has the same 1st index as the result index
-                    auto first = std::find_if(_g.cbegin(), _g.cend(), [&](const typename G3::value_type& elem) { return elem.first.at(0) == i; });
+                    //auto first = std::find_if(_g.cbegin(), _g.cend(), [&](const typename G3::value_type& elem) { return elem.first.at(0) == i; });
                     // Find the first element from here that does not
-                    auto last = std::find_if_not(first, _g.cend(), [&](const typename G3::value_type& elem) { return elem.first.at(0) == i; });
+                    //auto last = std::find_if_not(first, _g.cend(), [&](const typename G3::value_type& elem) { return elem.first.at(0) == i; });
                     // Sum up the result
-                    return std::accumulate(first, last, static_cast<return_type>(0), [&](const return_type& accum, const typename G3::value_type& elem) { return accum + _u.at(elem.first.at(1)) * _v.at(elem.first.at(2)) * elem.second; });
-                    //{
-                    //    if ((elem.first.at(1) == index_type{ 3, -3, 1 }) && (elem.first.at(2) == index_type{ 3, 3, -1 }))
-                    //        std::cout << "Match found with coeff = " << elem.second << std::endl;
-                    //
-                    //    return accum + _u.at(elem.first.at(1)) * _v.at(elem.first.at(2)) * elem.second;
-                    //});
+                    return std::accumulate(_g.get_marker(i).first,
+                                           _g.get_marker(i).second,
+                                           static_cast<return_type>(0),
+                                           [&](const return_type& accum, const typename G3::value_type& elem)
+                    {
+                        return accum + _u.at(elem.first.at(1)) * _v.at(elem.first.at(2)) * elem.second;
+                    });
                 }
 
             private:

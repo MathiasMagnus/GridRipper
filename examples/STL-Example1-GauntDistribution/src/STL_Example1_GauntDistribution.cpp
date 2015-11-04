@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
     using spherical_vector = SpinWeightedSpherical::Vector<index_type, floating_type>;
 
     // Simulation params
-    constexpr index_type max_L = 7;
+    constexpr index_type max_L = 31;
     constexpr index_type max_S = 3;
 
     // Initialize Gaunt-matrix

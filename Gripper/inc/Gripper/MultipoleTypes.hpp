@@ -273,7 +273,7 @@ namespace Multipole
 			Index(const TT l_in, const TT m_in, const TT s_in) : l(l_in), m(m_in), s(s_in) {}
 			Index(std::initializer_list<value_type> init)
 			{
-				//static_assert(init.size() == 3, "Initializer-list of Index must have 3 elements");
+				//static_assert(init.size() == 3, "Initializer-list of Index must have 3 elements: {l, m, s}");
 				l = *init.begin();
 				m = *(init.begin() + 1);
 				s = *(init.begin() + 2);
@@ -281,20 +281,59 @@ namespace Multipole
 
 			bool operator<(const Index& rhs) const
 			{
-				if (this->l < rhs.l) return true;
-				if (rhs.l < this->l) return false;
+				if (l < rhs.l) return true;
+				if (rhs.l < l) return false;
 
-				if (this->m < rhs.m) return true;
-				if (rhs.m < this->m) return false;
+				if (m < rhs.m) return true;
+				if (rhs.m < m) return false;
 
-				if (this->s < rhs.s) return true;
+				if (s < rhs.s) return true;
 				return false;
 			}
+
+            bool operator==(const Index& rhs) const
+            {
+                return (l == rhs.l) && (m == rhs.m) && (s == rhs.s);
+            }
+
+            bool operator<=(const Index& rhs) const
+            {
+                return (*this < rhs) || (*this == rhs);
+            }
+
+            static Index convert(const std::size_t& i, const value_type& max_s)
+            {
+                value_type i_corr = static_cast<value_type>(i / (2 * max_s + 1)); // truncation on division is intensional (omit std::floor and double up-cast)
+                value_type l = static_cast<value_type>(std::round((-1. + std::sqrt(1. + 4 * i_corr)) / 2.));
+                value_type m = i_corr - l*(l + 1);
+                value_type s = (i % (2 * max_s + 1)) - max_s;
+
+                return Index{ l, m, s };
+            }
+
+            static std::size_t convert(const Index& i, const value_type& max_s)
+            {
+                return (i.l * (i.l + 1) + i.m) * (2 * max_s + 1) + i.s + max_s;
+            }
 
 			value_type l;
 			value_type m;
 			value_type s;
 		};
+
+        template <typename AT>
+        Index<AT> next(const Index<AT>& index, const AT& max_l, const AT& max_s)
+        {
+            bool rewind_s_and_step_m = index.s == max_s;
+            bool rewind_m_and_step_l = rewind_s_and_step_m && (index.m == index.l);
+
+            return Index<AT>
+            {
+                rewind_m_and_step_l ? index.l + 1 : index.l,
+                rewind_s_and_step_m ? (rewind_m_and_step_l ? -(index.l + 1) : index.m + 1) : index.m,
+                rewind_s_and_step_m ? -max_s : index.s + 1
+            };
+        }
 
 	} // namespace SpinWeightedSpherical
 
@@ -337,17 +376,18 @@ namespace Multipole
 		{
 		public:
 
-            typedef SpinWeightedSpherical::Index<IndexInternalType>                index_type;
-            typedef ValueType                                                      mapped_type;
-			typedef std::array<index_type, 3>                                      key_type;
-			typedef std::map<key_type, mapped_type>                                container_type;
-			typedef std::pair<const key_type, mapped_type>                         value_type;
-			typedef std::pair<ValueType, ValueType>                                value_with_error;
-			typedef typename container_type::size_type                             size_type;
-			typedef typename container_type::iterator                              iterator_type;
-			typedef typename container_type::const_iterator                        const_iterator_type;
-			typedef typename container_type::reverse_iterator                      reverse_iterator_type;
-			typedef typename container_type::const_reverse_iterator                const_reverse_iterator_type;
+            typedef SpinWeightedSpherical::Index<IndexInternalType>     index_type;
+            typedef ValueType                                           mapped_type;
+			typedef std::array<index_type, 3>                           key_type;
+			typedef std::pair<const key_type, mapped_type>              value_type;
+            typedef std::vector<value_type>                             container_type;
+			typedef typename container_type::size_type                  size_type;
+			typedef typename container_type::iterator                   iterator_type;
+			typedef typename container_type::const_iterator             const_iterator_type;
+			typedef typename container_type::reverse_iterator           reverse_iterator_type;
+			typedef typename container_type::const_reverse_iterator     const_reverse_iterator_type;
+            typedef std::pair<const_iterator_type, const_iterator_type> marker_type;
+            typedef std::vector<marker_type>                            accelerator_structure_type;
 
 			Matrix() = default;
 			Matrix(const Matrix&) = default;
@@ -380,10 +420,12 @@ namespace Multipole
 			size_type size() const { return m_data.size(); }    // Returns the number of elements inside the Matrix
 			IndexInternalType getL() const { return m_l_max; }  // Returns L_max the matrix has been created for
 			IndexInternalType getS() const { return m_s_max; }  // Returns S_max the matrix has been created for
+            const marker_type& get_marker(const index_type& index) const { return m_accel.at(SpinWeightedSpherical::Index<IndexInternalType>::convert(index, m_s_max)); }
 
 		private:
 
 			container_type m_data;                              // Container to store values
+            accelerator_structure_type m_accel;                 // Container to store accelerator markers
 			IndexInternalType m_l_max;                          // l_max the matrix has been created for
 			IndexInternalType m_s_max;                          // s_max the matrix has been created for			
 
@@ -408,9 +450,16 @@ namespace Multipole
 				for (auto& job : jobs)
 				{
 					auto temp = job.get();
-					m_data.insert(temp.cbegin(), temp.cend());
+                    std::copy(temp.cbegin(), temp.cend(), std::back_inserter(m_data));
 				}
-
+                
+                for (auto i = index_type{ 0, 0, -m_s_max }; i <= index_type{ m_l_max, m_l_max, m_s_max }; i = SpinWeightedSpherical::next(i, m_l_max, m_s_max))
+                {
+                    auto first = std::find_if(m_data.cbegin(), m_data.cend(), [&](const value_type& elem) { return elem.first.at(0) == i; });
+                    auto last = std::find_if_not(first, m_data.cend(), [&](const value_type& elem) { return elem.first.at(0) == i; });
+                    m_accel.push_back(marker_type(first, last));
+                }
+                
 				auto end = std::chrono::high_resolution_clock::now();
 
 				Gripper::clog << Gripper::LogLevel::TIMING << "Computation took " << std::chrono::duration_cast<std::chrono::seconds>(end.time_since_epoch() - start.time_since_epoch()).count() << " seconds.";
@@ -448,10 +497,10 @@ namespace Multipole
 											mapped_type res = static_cast<mapped_type>(std::sqrt((2 * L1 + 1) * (2 * L2 + 1) * (2 * L3 + 1) / (4.0 * 3.1415926535897931159979634)) * temp1 * temp2);
 
 											if (std::fabs(res) > 1e-6)
-                                                result.insert(value_type(key_type{ index_type{ L1, M1, S1 },
-                                                                                   index_type{ L2, M2, S2 },
-                                                                                   index_type{ L3, M3, S3 } },
-                                                                         res));
+                                                result.push_back(value_type(key_type{ index_type{ L1, M1, S1 },
+                                                                                      index_type{ L2, M2, S2 },
+                                                                                      index_type{ L3, M3, S3 } },
+                                                                            res));
 										}					
 
 				Gripper::clog << Gripper::LogLevel::ALL << "Compute thread L = " << L1 << "," << M1 << " finished.";
