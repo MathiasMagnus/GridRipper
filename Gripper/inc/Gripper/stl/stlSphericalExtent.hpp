@@ -1,14 +1,10 @@
-#ifndef STLSPHERICALEXTENT_HPP
-#define STLSPHERICALEXTENT_HPP
-
-// Reading settings from CMake build configuration
-#include <Gripper/Gripper_Config.hpp>
-#include <Gripper/Gripper_Export.hpp>
+#pragma once
 
 // Gripper includes
-#include <Gripper/stl/stlMultipoleDefs.hpp>     // Forward declaration of Multipole types
-#include <Gripper/stl/stlGauntIndex.hpp>        // Spherical::Extent uses Gaunt::Index as representation
-#include <Gripper/stl/stlLogger.hpp>            // Trace logging
+#include <Gripper/stl/stlSphericalIndex.hpp>    // Multipole::stl::Spherical::Index, Multipole::stl::SpinWeightedSpherical::Index
+
+// Standard C++ includes
+#include <initializer_list>                     // std::initializer_list
 
 
 namespace Multipole
@@ -17,32 +13,34 @@ namespace Multipole
     {
         namespace Spherical
         {
-            class EXPORT Extent
+            template <typename ArithemticType = Index<>::value_type>
+            class Extent
             {
             public:
 
                 // Lattice typedefs
 
-                typedef Gaunt::Index  index_type;
+                typedef Index<ArithemticType> index_type;
 
                 // Common interface
 
-                Extent();
-                Extent(const Extent& in);
-                Extent(Extent&& src);
-                ~Extent();
+                Extent() = default;
+                Extent(const Extent&) = default;
+                Extent(Extent&&) = default;
+                ~Extent() = default;
 
-                Extent& operator=(const Extent& rhs);
+                Extent& operator=(const Extent&) = default;
+                Extent& operator=(Extent&&) = default;
 
                 // Lattice interface
 
-                Extent(const index_type& initial, const index_type& final);
-                Extent(const Index& initial, const Index& final);
+                Extent(index_type&& initial, index_type&& final) : m_initial(initial), m_final(final) {}
+                Extent(std::initializer_list<index_type> init) : m_initial(*(init.begin())), m_final(*(init.begin() + 1)) { static_assert(init.size() == 2, "Size of std::initializer_list<Index> to Multipole::stl::Spherical::Extent must be 2"); }
 
-                const index_type& initial() const;
-                const index_type& final() const;
+                const index_type& initial() const { return m_initial; }
+                const index_type& final() const { return m_final; }
 
-                bool contains(const index_type& index) const;
+                bool contains(const index_type& index) const { return (index >= m_initial) && (index <= m_final) ? true : false; }
 
             private:
 
@@ -54,30 +52,39 @@ namespace Multipole
 
         namespace SpinWeightedSpherical
         {
-            template <typename ArithmeticType>
-            struct Extent
+            template <typename ArithemticType = Index<>::value_type>
+            class Extent
             {
+            public:
+
                 // Lattice typedefs
 
-                using index_type = Index<ArithmeticType>;
+                typedef Index<ArithemticType> index_type;
 
                 // Common interface
 
                 Extent() = default;
-                Extent(const Extent& in) = default;
-                Extent(Extent&& src) = default;
+                Extent(const Extent&) = default;
+                Extent(Extent&&) = default;
                 ~Extent() = default;
 
-                Extent& operator=(const Extent& rhs) { this->initial = rhs.initial; this->final = rhs.final; return *this; }
+                Extent& operator=(const Extent&) = default;
+                Extent& operator=(Extent&&) = default;
 
                 // Lattice interface
 
-                Extent(const index_type& initial_in, const index_type& final_in) : initial(initial_in), final(final_in) {}
+                Extent(index_type&& initial, index_type&& final) : m_initial(initial), m_final(final) {}
+                Extent(std::initializer_list<index_type> init) : m_initial(*(init.begin())), m_final(*(init.begin() + 1)) { static_assert(init.size() == 2, "Size of std::initializer_list<Index> to Multipole::stl::SpinWeightedSpherical::Extent must be 2"); }
 
-                bool contains(const index_type& index) const { return (index >= m_initial) && (index < m_final) ? true : false; }
+                const index_type& initial() const { return m_initial; }
+                const index_type& final() const { return m_final; }
 
-                index_type initial;
-                index_type final;
+                bool contains(const index_type& index) const { return (index >= m_initial) && (index <= m_final) ? true : false; }
+
+            private:
+
+                index_type m_initial;
+                index_type m_final;
             };
 
         } // namespace SpinWeightedSpherical
@@ -92,8 +99,8 @@ namespace Multipole
 ////////////////////////////////////////////
 
 // Binary
-EXPORT bool operator==(const Multipole::stl::Spherical::Extent& lhs, const Multipole::stl::Spherical::Extent& rhs);
-EXPORT bool operator!=(const Multipole::stl::Spherical::Extent& lhs, const Multipole::stl::Spherical::Extent& rhs);
+template <typename AT> bool operator==(const Multipole::stl::Spherical::Extent<AT>& lhs, const Multipole::stl::Spherical::Extent<AT>& rhs) { return (lhs.final == rhs.final) && (lhs.initial == rhs.initial); }
+template <typename AT> bool operator!=(const Multipole::stl::Spherical::Extent<AT>& lhs, const Multipole::stl::Spherical::Extent<AT>& rhs) { return (lhs.final != rhs.final) || (lhs.initial != rhs.initial); }
 
 ////////////////////////////////////////////////////////
 // SpinWeightedSpherical::Extent non-member operators //
@@ -102,5 +109,3 @@ EXPORT bool operator!=(const Multipole::stl::Spherical::Extent& lhs, const Multi
 // Binary
 template <typename AT> bool operator==(const Multipole::stl::SpinWeightedSpherical::Extent<AT>& lhs, const Multipole::stl::SpinWeightedSpherical::Extent<AT>& rhs) { return (lhs.final == rhs.final) && (lhs.initial == rhs.initial); }
 template <typename AT> bool operator!=(const Multipole::stl::SpinWeightedSpherical::Extent<AT>& lhs, const Multipole::stl::SpinWeightedSpherical::Extent<AT>& rhs) { return (lhs.final != rhs.final) || (lhs.initial != rhs.initial); }
-
-#endif // STLSPHERICALEXTENT_HPP

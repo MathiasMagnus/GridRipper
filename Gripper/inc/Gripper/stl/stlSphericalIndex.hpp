@@ -1,18 +1,9 @@
-#ifndef STLSPHERICALINDEX_HPP
-#define STLSPHERICALINDEX_HPP
-
-// Reading settings from CMake build configuration
-#include <Gripper/Gripper_Config.hpp>
-#include <Gripper/Gripper_Export.hpp>
-
-// Gripper includes
-#include <Gripper/stl/stlMultipoleDefs.hpp>     // Forward declaration of Multipole types
-#include <Gripper/stl/stlGauntIndex.hpp>        // Spherical::IndexPair can construct itself from Gaunt::Index
-
-#include <Gripper/MultipoleTypes.hpp>           // Index is just an alias of the basic template type
+#pragma once
 
 // Standard C++ includes
-#include <cmath>
+#include <cstdint>          // std::int8_t
+#include <initializer_list> // std::initializer_list
+#include <cmath>            // std::round, std::sqrt
 
 
 namespace Multipole
@@ -21,108 +12,217 @@ namespace Multipole
     {
         namespace Spherical
         {
-            class EXPORT Index
+            template <typename VT>
+            class Traits
             {
             public:
 
                 // Common typedefs
 
-                typedef int32_t  value_type;
+                typedef VT          value_type;
 
-                // Common interface
+                // STL typedefs
 
-                Index();
-                Index(const Index& in);
-                Index(Index&& src);
-                ~Index();
-
-                Index& operator=(const Index& rhs);
-
-                // Lattice interface
-
-                Index(const value_type& in);
-
-                explicit operator value_type&();
-
-                Index& operator+=(const Index& rhs);
-                Index& operator-=(const Index& rhs);
-                Index& operator*=(const Index& rhs);
-                Index& operator/=(const Index& rhs);
-
-                Index operator++(int rhs);
-                Index& operator++();
-                Index operator--(int rhs);
-                Index& operator--();
-
-                value_type i;
+                typedef std::size_t size_type;
             };
 
-            class EXPORT IndexPair
+            template <typename ArithmeticType = std::int8_t>
+            struct Index : Traits<ArithmeticType>
             {
-            public:
+                Index() = default;
+                Index(const Index&) = default;
+                Index(Index&&) = default;
+                ~Index() = default;
 
-                // Common typedefs
+                Index& operator=(const Index& in) = default;
+                Index& operator=(Index&& in) = default;
 
-                typedef Index  value_type;
+                template <typename TT>
+                Index(const TT l_in, const TT m_in) : l(l_in), m(m_in) {}
+                Index(std::initializer_list<value_type> init)
+                {
+                    //static_assert(init.size() == 2, "Initializer-list of Index must have 2 elements: {l, m}");
+                    l = *init.begin();
+                    m = *(init.begin() + 1);
+                }
 
-                // Common interface
+                bool operator<(const Index& rhs) const
+                {
+                    if (l < rhs.l) return true;
+                    if (rhs.l < l) return false;
 
-                IndexPair();
-                IndexPair(const IndexPair& in);
-                IndexPair(IndexPair&& src);
-                ~IndexPair();
+                    if (m < rhs.m) return true;
+                    return false;
+                }
 
-                // Lattice Interface
+                bool operator>(const Index& rhs) const
+                {
+                    if (l > rhs.l) return true;
+                    if (rhs.l > l) return false;
 
-                IndexPair(const value_type& l_in, const value_type& m_in);
-                IndexPair(const Gaunt::Index& i_in);
+                    if (m > rhs.m) return true;
+                    return false;
+                }
+
+                bool operator==(const Index& rhs) const
+                {
+                    return (l == rhs.l) && (m == rhs.m);
+                }
+
+                bool operator<=(const Index& rhs) const
+                {
+                    return (*this < rhs) || (*this == rhs);
+                }
+
+                bool operator>=(const Index& rhs) const
+                {
+                    return (*this > rhs) || (*this == rhs);
+                }
+
+                static Index convert(const std::size_t& i)
+                {
+                    value_type l = static_cast<value_type>(std::round((-1. + std::sqrt(1. + 4 * i)) / 2.));
+                    value_type m = i - l*(l + 1);
+
+                    return Index{ l, m };
+                }
+
+                static size_type convert(const Index& i)
+                {
+                    return i.l * (i.l + 1) + i.m;
+                }
 
                 value_type l;
                 value_type m;
             };
 
+            template <typename AT>
+            Index<AT> next(const Index<AT>& index)
+            {
+                bool rewind_m_and_step_l = index.m == index.l;
+
+                return Index<AT>
+                {
+                    rewind_m_and_step_l ? index.l + 1 : index.l,
+                        rewind_m_and_step_l ? -(index.l + 1) : index.m + 1
+                };
+            }
+
         } // namespace Spherical
 
         namespace SpinWeightedSpherical
         {
+            template <typename VT>
+            class Traits
+            {
+            public:
+
+                // Common typedefs
+
+                typedef VT          value_type;
+
+                // STL typedefs
+
+                typedef std::size_t size_type;
+            };
+
             template <typename ArithmeticType = std::int8_t>
-            using Index = Multipole::SpinWeightedSpherical::Index<ArithmeticType>;
+            struct Index : Traits<ArithmeticType>
+            {
+                typedef ArithmeticType value_type;
+
+                Index() = default;
+                Index(const Index&) = default;
+                Index(Index&&) = default;
+                ~Index() = default;
+
+                Index& operator=(const Index& in) = default;
+
+                template <typename TT>
+                Index(const TT l_in, const TT m_in, const TT s_in) : l(l_in), m(m_in), s(s_in) {}
+                Index(std::initializer_list<value_type> init)
+                {
+                    //static_assert(init.size() == 3, "Initializer-list of Multipole::stl::SpinWeightedSpherical::Index must have 3 elements: {l, m, s}");
+                    l = *init.begin();
+                    m = *(init.begin() + 1);
+                    s = *(init.begin() + 2);
+                }
+
+                bool operator<(const Index& rhs) const
+                {
+                    if (l < rhs.l) return true;
+                    if (rhs.l < l) return false;
+
+                    if (m < rhs.m) return true;
+                    if (rhs.m < m) return false;
+
+                    if (s < rhs.s) return true;
+                    return false;
+                }
+
+                bool operator>(const Index& rhs) const
+                {
+                    if (l > rhs.l) return true;
+                    if (rhs.l > l) return false;
+
+                    if (m > rhs.m) return true;
+                    if (rhs.m > m) return false;
+
+                    if (s > rhs.s) return true;
+                    return false;
+                }
+
+                bool operator==(const Index& rhs) const
+                {
+                    return (l == rhs.l) && (m == rhs.m) && (s == rhs.s);
+                }
+
+                bool operator<=(const Index& rhs) const
+                {
+                    return (*this < rhs) || (*this == rhs);
+                }
+
+                bool operator>=(const Index& rhs) const
+                {
+                    return (*this > rhs) || (*this == rhs);
+                }
+
+                static Index convert(const std::size_t& i, const value_type& max_s)
+                {
+                    value_type i_corr = static_cast<value_type>(i / (2 * max_s + 1)); // truncation on division is intensional (omit std::floor and double up-cast)
+                    value_type l = static_cast<value_type>(std::round((-1. + std::sqrt(1. + 4 * i_corr)) / 2.));
+                    value_type m = i_corr - l*(l + 1);
+                    value_type s = (i % (2 * max_s + 1)) - max_s;
+
+                    return Index{ l, m, s };
+                }
+
+                static size_type convert(const Index& i, const value_type& max_s)
+                {
+                    return (i.l * (i.l + 1) + i.m) * (2 * max_s + 1) + i.s + max_s;
+                }
+
+                value_type l;
+                value_type m;
+                value_type s;
+            };
+
+            template <typename AT>
+            Index<AT> next(const Index<AT>& index, const AT& max_l, const AT& max_s)
+            {
+                bool rewind_s_and_step_m = index.s == max_s;
+                bool rewind_m_and_step_l = rewind_s_and_step_m && (index.m == index.l);
+
+                return Index<AT>
+                {
+                    rewind_m_and_step_l ? index.l + 1 : index.l,
+                        rewind_s_and_step_m ? (rewind_m_and_step_l ? -(index.l + 1) : index.m + 1) : index.m,
+                        rewind_s_and_step_m ? -max_s : index.s + 1
+                };
+            }
 
         } // namespace SpinWeightedSpherical
 
     } // namespace stl
 
 } // namespace Multipole
-
-
-///////////////////////////////////////////
-// Spherical::Index non-member operators //
-///////////////////////////////////////////
-
-// Unary 
-EXPORT Multipole::stl::Spherical::Index operator+(const Multipole::stl::Spherical::Index& rhs);
-EXPORT Multipole::stl::Spherical::Index operator-(const Multipole::stl::Spherical::Index& rhs);
-
-// Binary
-EXPORT Multipole::stl::Spherical::Index operator+(const Multipole::stl::Spherical::Index& lhs, const Multipole::stl::Spherical::Index& rhs);
-EXPORT Multipole::stl::Spherical::Index operator-(const Multipole::stl::Spherical::Index& lhs, const Multipole::stl::Spherical::Index& rhs);
-EXPORT Multipole::stl::Spherical::Index operator*(const Multipole::stl::Spherical::Index& lhs, const Multipole::stl::Spherical::Index& rhs);
-EXPORT Multipole::stl::Spherical::Index operator/(const Multipole::stl::Spherical::Index& lhs, const Multipole::stl::Spherical::Index& rhs);
-EXPORT Multipole::stl::Spherical::Index operator%(const Multipole::stl::Spherical::Index& lhs, const Multipole::stl::Spherical::Index& rhs);
-
-EXPORT bool operator< (const Multipole::stl::Spherical::Index& lhs, const Multipole::stl::Spherical::Index& rhs);
-EXPORT bool operator> (const Multipole::stl::Spherical::Index& lhs, const Multipole::stl::Spherical::Index& rhs);
-EXPORT bool operator<=(const Multipole::stl::Spherical::Index& lhs, const Multipole::stl::Spherical::Index& rhs);
-EXPORT bool operator>=(const Multipole::stl::Spherical::Index& lhs, const Multipole::stl::Spherical::Index& rhs);
-EXPORT bool operator==(const Multipole::stl::Spherical::Index& lhs, const Multipole::stl::Spherical::Index& rhs);
-EXPORT bool operator!=(const Multipole::stl::Spherical::Index& lhs, const Multipole::stl::Spherical::Index& rhs);
-
-///////////////////////////////////////////////
-// Spherical::IndexPair non-member operators //
-///////////////////////////////////////////////
-
-// Binary
-EXPORT bool operator==(const Multipole::stl::Spherical::IndexPair& lhs, const Multipole::stl::Spherical::IndexPair& rhs);
-EXPORT bool operator!=(const Multipole::stl::Spherical::IndexPair& lhs, const Multipole::stl::Spherical::IndexPair& rhs);
-
-#endif // STLSPHERICALINDEX_HPP

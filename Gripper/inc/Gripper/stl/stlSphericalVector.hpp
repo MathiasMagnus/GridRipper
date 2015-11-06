@@ -1,14 +1,8 @@
-#ifndef STLSPHERICALVECTOR_HPP
-#define STLSPHERICALVECTOR_HPP
-
-// Reading settings from CMake build configuration
-#include <Gripper/Gripper_Config.hpp>
-#include <Gripper/Gripper_Export.hpp>
+#pragma once
 
 // Gripper includes
-#include <Gripper/stl/stlMultipoleDefs.hpp>     // Forward declaration of Multipole types
+#include <Gripper/stl/stlSphericalIndex.hpp>    // 
 #include <Gripper/stl/stlSphericalExtent.hpp>
-#include <Gripper/stl/stlRuntime.hpp>           // For ability to read global runtime configuration
 
 // GSL includes
 #include <gsl/gsl_sf_legendre.h>
@@ -178,148 +172,54 @@ namespace Multipole
             };
 
 
-            template <typename E1, typename E2>
-            class Sum : public Expression<Sum<E1, E2>, decltype(std::declval<typename E1::value_type>() + std::declval<typename E2::value_type>())>
+            template <typename E, typename F>
+            class Map : public Expression<Map<E, F>, typename std::result_of<F(typename E::value_type)>::type>
             {
-            private:
-
-                typedef decltype(std::declval<typename E1::value_type>() + std::declval<typename E2::value_type>()) return_type;
-
             public:
 
-                Sum(Expression<E1, typename E1::value_type> const& u, Expression<E2, typename E2::value_type> const& v) : _u(u), _v(v) { assert(u.size() == v.size()); }
+                Map(Expression<E, typename E::value_type> const& u, F&& f) : _u(u), _f(f) {}
 
                 // STL interface
 
-                size_type   size()                  const { return _v.size(); }
-                return_type operator[](size_type i) const { return _u[i] + _v[i]; }
-                return_type at(size_type i)         const { return _u.at(i) + _v.at(i); }
+                size_type  size()                  const { return _u.size(); }
+                value_type operator[](size_type i) const { return _f(u[i]); }
+                value_type at(size_type i)         const { return _f(_u.at(i)); }
 
                 // Lattice interface
 
-                extent_type extent()                const { return _v.extent(); }
-                return_type at(index_type i)        const { return _u.at(i) + _v.at(i); }
+                extent_type extent()               const { return _u.extent(); }
+                value_type at(index_type i)        const { return _f(_u.at(i)); }
 
             private:
 
-                E1 const& _u;
-                E2 const& _v;
+                const E& _u;
+                F _f;
             };
 
 
-            template <typename E1, typename E2>
-            class Dif : public Expression<Dif<E1, E2>, decltype(std::declval<typename E1::value_type>() - std::declval<typename E2::value_type>())>
+            template <typename E1, typename E2, typename F>
+            class Zip : public Expression<Zip<E1, E2, F>, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>
             {
-            private:
-
-                typedef decltype(std::declval<typename E1::value_type>() - std::declval<typename E2::value_type>()) return_type;
-
             public:
 
-                Dif(Expression<E1, typename E1::value_type> const& u, Expression<E2, typename E2::value_type> const& v) : _u(u), _v(v) { assert(u.size() == v.size()); }
+                Zip(Expression<E1, typename E1::value_type> const& u, Expression<E2, typename E2::value_type> const& v, F&& f) : _u(u), _v(v), _f(f) { assert(u.size() == v.size()); }
 
                 // STL interface
 
-                size_type   size()                  const { return _v.size(); }
-                return_type operator[](size_type i) const { return _u[i] - _v[i]; }
-                return_type at(size_type i)         const { return _u.at(i) - _v.at(i); }
+                size_type   size()                  const { return _u.size(); }
+                return_type operator[](size_type i) const { return _f(u[i], _v[i]); }
+                return_type at(size_type i)         const { return _f(_u.at(i), _v.at(i)); }
 
                 // Lattice interface
 
-                extent_type extent()                const { return _v.extent(); }
-                return_type at(index_type i)        const { return _u.at(i) - _v.at(i); }
+                extent_type extent()                const { return _u.extent(); }
+                return_type at(index_type i)        const { return _f(_u.at(i), _v.at(i)); }
 
             private:
 
-                E1 const& _u;
-                E2 const& _v;
-            };
-
-
-            template <typename E1, typename E2>
-            class Mul : public Expression<Mul<E1, E2>, decltype(std::declval<typename E1::value_type>() * std::declval<typename E2::value_type>())>
-            {
-            private:
-
-                typedef decltype(std::declval<typename E1::value_type>() * std::declval<typename E2::value_type>()) return_type;
-
-            public:
-
-                Mul(Expression<E1, typename E1::value_type> const& u, Expression<E2, typename E2::value_type> const& v) : _u(u), _v(v) { assert(u.size() == v.size()); }
-
-                // STL interface
-
-                size_type   size()                  const { return _v.size(); }
-                return_type operator[](size_type i) const { return _u[i] * _v[i]; }
-                return_type at(size_type i)         const { return _u.at(i) * _v.at(i); }
-
-                // Lattice interface
-
-                extent_type extent()                const { return _v.extent(); }
-                return_type at(index_type i)        const { return _u.at(i) * _v.at(i); }
-
-            private:
-
-                E1 const& _u;
-                E2 const& _v;
-            };
-
-
-            template <typename E1, typename E2>
-            class Div : public Expression<Div<E1, E2>, decltype(std::declval<typename E1::value_type>() / std::declval<typename E2::value_type>())>
-            {
-            private:
-
-                typedef decltype(std::declval<typename E1::value_type>() / std::declval<typename E2::value_type>()) return_type;
-
-            public:
-
-                Div(Expression<E1, typename E1::value_type> const& u, Expression<E2, typename E2::value_type> const& v) : _u(u), _v(v) { assert(u.size() == v.size()); }
-
-                // STL interface
-
-                size_type   size()                  const { return _v.size(); }
-                return_type operator[](size_type i) const { return _u[i] / _v[i]; }
-                return_type at(size_type i)         const { return _u.at(i) / _v.at(i); }
-
-                // Lattice interface
-
-                extent_type extent()                const { return _v.extent(); }
-                return_type at(index_type i)        const { return _u.at(i) / _v.at(i); }
-
-            private:
-
-                E1 const& _u;
-                E2 const& _v;
-            };
-
-
-            template <typename E>
-            class Scale : public Expression<Scale<E>, decltype(std::declval<double>() * std::declval<typename E::value_type>())>
-            {
-            private:
-
-                typedef decltype(std::declval<double>() * std::declval<typename E::value_type>()) return_type;
-
-            public:
-
-                Scale(double alpha, Expression<E, typename E::value_type> const& v) : _alpha(alpha), _v(v) {}
-
-                // STL interface
-
-                size_type   size()                  const { return _v.size(); }
-                return_type operator[](size_type i) const { return _alpha * _v[i]; }
-                return_type at(size_type i)         const { return _alpha * _v.at(i); }
-
-                // Lattice interface
-
-                extent_type extent()                const { return _v.extent(); }
-                return_type at(index_type i)        const { return _alpha * _v.at(i); }
-
-            private:
-
-                double _alpha;
-                E const& _v;
+                const E1& _u;
+                const E2& _v;
+                F _f;
             };
 
         } // namespace Spherical
@@ -677,31 +577,16 @@ namespace Multipole
 ////////////////////////////////////////////
 
 // Unary 
-template <typename E, typename T> Multipole::stl::Spherical::Scale<E> const operator+(Multipole::stl::Spherical::Expression<E, T> const& v) { return Multipole::stl::Spherical::Scale<E>(1.0, v); }
-template <typename E, typename T> Multipole::stl::Spherical::Scale<E> const operator-(Multipole::stl::Spherical::Expression<E, T> const& v) { return Multipole::stl::Spherical::Scale<E>(-1.0, v); }
+template <typename E, typename T> auto operator+(Multipole::stl::Spherical::Expression<E, T> const& v) { return Multipole::stl::Spherical::Map<E, T>(v, [](auto&& val) { return static_cast<T>(1) * val; }); }
+template <typename E, typename T> auto operator-(Multipole::stl::Spherical::Expression<E, T> const& v) { return Multipole::stl::Spherical::Map<E, T>(v, [](auto&& val) { return static_cast<T>(-1) * val; }); }
 
 // Binary
-template <typename E1, typename E2, typename T1, typename T2> Multipole::stl::Spherical::Sum<E1, E2> const operator+(Multipole::stl::Spherical::Expression<E1, T1> const& u, Multipole::stl::Spherical::Expression<E2, T2> const& v) { return Multipole::stl::Spherical::Sum<E1, E2>(u, v); }
-template <typename E1, typename E2, typename T1, typename T2> Multipole::stl::Spherical::Dif<E1, E2> const operator-(Multipole::stl::Spherical::Expression<E1, T1> const& u, Multipole::stl::Spherical::Expression<E2, T2> const& v) { return Multipole::stl::Spherical::Dif<E1, E2>(u, v); }
-template <typename E1, typename E2, typename T1, typename T2> Multipole::stl::Spherical::Mul<E1, E2> const operator*(Multipole::stl::Spherical::Expression<E1, T1> const& u, Multipole::stl::Spherical::Expression<E2, T2> const& v) { return Multipole::stl::Spherical::Mul<E1, E2>(u, v); }
-template <typename E1, typename E2, typename T1, typename T2> Multipole::stl::Spherical::Div<E1, E2> const operator/(Multipole::stl::Spherical::Expression<E1, T1> const& u, Multipole::stl::Spherical::Expression<E2, T2> const& v) { return Multipole::stl::Spherical::Div<E1, E2>(u, v); }
+template <typename E1, typename E2, typename T1, typename T2> auto operator+(Multipole::stl::Spherical::Expression<E1, T1> const& u, Multipole::stl::Spherical::Expression<E2, T2> const& v) { return Multipole::stl::Spherical::Zip<E1, E2>(u, v, [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
+template <typename E1, typename E2, typename T1, typename T2> auto operator-(Multipole::stl::Spherical::Expression<E1, T1> const& u, Multipole::stl::Spherical::Expression<E2, T2> const& v) { return Multipole::stl::Spherical::Zip<E1, E2>(u, v, [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
 
-template <typename E, typename T> Multipole::stl::Spherical::Scale<E> const operator*(const double alpha, Multipole::stl::Spherical::Expression<E, T> const& v) { return Multipole::stl::Spherical::Scale<E>(alpha, v); }
-template <typename E, typename T> Multipole::stl::Spherical::Scale<E> const operator*(Multipole::stl::Spherical::Expression<E, T> const& v, const double alpha) { return Multipole::stl::Spherical::Scale<E>(alpha, v); }
-/*
-namespace Multipole
-{
-    namespace stl
-    {
-        namespace Spherical
-        {
-            double assocLegendrePoly(const IndexPair lm, const double x) { return gsl_sf_legendre_sphPlm(lm.l.i, lm.m.i, x); }
+template <typename E, typename T, typename Scalar> auto operator*(const Scalar& alpha, Multipole::stl::Spherical::Expression<E, T> const& v) { return Multipole::stl::Spherical::Map<E, T>(v, [=](auto val&&) { return alpha * val; }); }
+template <typename E, typename T, typename Scalar> auto operator*(Multipole::stl::Spherical::Expression<E, T> const& v, const Scalar& alpha) { return Multipole::stl::Spherical::Map<E, T>(v, [=](auto val&&) { return alpha * val; }); }
 
-            std::complex<double> harmonic(const IndexPair lm, double theta, double phi) { return std::pow(-1, lm.m.i) * std::sqrt((2 * lm.l.i) / (4 * M_PI) * gsl_sf_fact(lm.l.i - lm.m.i) / gsl_sf_fact(lm.l.i + lm.m.i)) * assocLegendrePoly(lm, std::cos(theta)) * std::exp(std::complex<double>(0, 1) * static_cast<double>(lm.m.i) * phi); }
-        }
-    }
-}
-*/
 ////////////////////////////////////////////////////////
 // SpinWeightedSpherical::Vector non-member operators //
 ////////////////////////////////////////////////////////
@@ -717,5 +602,3 @@ template <typename E1, typename E2, typename I1, typename I2, typename T1, typen
 
 template <typename E, typename I, typename T> Multipole::stl::SpinWeightedSpherical::Scale<E, I, T> const operator*(const T& alpha, Multipole::stl::SpinWeightedSpherical::Expression<E, I, T> const& v) { return Multipole::stl::Spherical::Scale<E, I, T>(alpha, v); }
 template <typename E, typename I, typename T> Multipole::stl::SpinWeightedSpherical::Scale<E, I, T> const operator*(Multipole::stl::SpinWeightedSpherical::Expression<E, I, T> const& v, const T& alpha) { return Multipole::stl::Spherical::Scale<E, I, T>(alpha, v); }
-
-#endif // STLSPHERICALVECTOR_HPP

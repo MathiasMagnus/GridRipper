@@ -1,5 +1,4 @@
-#ifndef MULTIPOLETYPES_HPP
-#define MULTIPOLETYPES_HPP
+#pragma once
 
 // Reading settings from CMake build configuration
 #include <Gripper/Gripper_Config.hpp>
@@ -30,227 +29,163 @@
 
 namespace Multipole
 {
-    namespace Radial
-    {
-        class EXPORT Index
-        {
-        public:
-            Index();
-            Index(const Index& in);
-            Index(const IndexType& in);
-            ~Index();
-
-            explicit operator const IndexType&();
-
-            Index& operator+=(const Index& rhs);
-            Index& operator-=(const Index& rhs);
-            Index& operator*=(const Index& rhs);
-            Index& operator/=(const Index& rhs);
-
-            Index operator++(int rhs);
-            Index& operator++();
-            Index operator--(int rhs);
-            Index& operator--();
-
-            IndexType r;
-        };
-
-    } // namespace Radial
-
     namespace Spherical
     {
-        class EXPORT Index
+        template <typename ArithmeticType = std::int8_t>
+        class Index
         {
         public:
-            Index();
-            Index(const Index& in);
-            Index(const IndexType& in);
-            ~Index();
 
-            explicit operator const IndexType&();
-            
-            Index& operator+=(const Index& rhs);
-            Index& operator-=(const Index& rhs);
-            Index& operator*=(const Index& rhs);
-            Index& operator/=(const Index& rhs);
+            typedef ArithmeticType value_type;
 
-            Index operator++(int rhs);
-            Index& operator++();
-            Index operator--(int rhs);
-            Index& operator--();
+            Index() = default;
+            Index(const Index&) = default;
+            Index(Index&&) = default;
+            ~Index() = default;
 
-            IndexType i;
+            Index& operator=(const Index& in) = default;
+            Index& operator=(Index&& in) = default;
+
+            template <typename TT>
+            Index(const TT l_in, const TT m_in) : l(l_in), m(m_in) {}
+            Index(std::initializer_list<value_type> init)
+            {
+                //static_assert(init.size() == 2, "Initializer-list of Index must have 2 elements: {l, m}");
+                l = *init.begin();
+                m = *(init.begin() + 1);
+            }
+
+            bool operator<(const Index& rhs) const
+            {
+                if (l < rhs.l) return true;
+                if (rhs.l < l) return false;
+
+                if (m < rhs.m) return true;
+                return false;
+            }
+
+            bool operator==(const Index& rhs) const
+            {
+                return (l == rhs.l) && (m == rhs.m);
+            }
+
+            bool operator<=(const Index& rhs) const
+            {
+                return (*this < rhs) || (*this == rhs);
+            }
+
+            value_type l;
+            value_type m;
         };
 
-        class EXPORT IndexPair
+        template <typename AT>
+        Index<AT> next(const Index<AT>& index)
         {
-        public:
-            IndexPair();
-            IndexPair(const IndexPair& in);
-            IndexPair(const Index& l_in, const Index& m_in);
-            IndexPair(const Gaunt::Index& i_in);
-            ~IndexPair();
+            bool rewind_m_and_step_l = index.m == index.l;
 
-            Index l;
-            Index m;
-        };
+            return Index<AT>
+            {
+                rewind_m_and_step_l ? index.l + 1 : index.l,
+                rewind_m_and_step_l ? -(index.l + 1) : index.m + 1
+            };
+        }
 
     } // namespace Spherical
 
-	namespace Spin
-	{
-		class EXPORT Index
-		{
-		public:
-			Index();
-			Index(const Index& in);
-			Index(const IndexType& in);
-			~Index();
-
-			explicit operator const IndexType&();
-
-			Index& operator+=(const Index& rhs);
-			Index& operator-=(const Index& rhs);
-			Index& operator*=(const Index& rhs);
-			Index& operator/=(const Index& rhs);
-
-			Index operator++(int rhs);
-			Index& operator++();
-			Index operator--(int rhs);
-			Index& operator--();
-
-			IndexType i;
-		};
-
-	} // Spin
-
     namespace Gaunt
     {
-        class EXPORT Index
+        template <typename IndexInternalType, typename ValueType>
+        class Matrix;
+
+        template <typename IndexInternalType, typename ValueType>
+        std::ostream& operator<<(std::ostream& os, const Matrix<IndexInternalType, ValueType>& mat)
+        {
+            //////////////////////////////////////////////////////////////////////////////////////
+            //                                                                                  //
+            //                              !!!!!! WARNING !!!!!!!                              //
+            //                                                                                  //
+            //                              STL NON-SENSE DETECTED                              //
+            //                                                                                  //
+            //////////////////////////////////////////////////////////////////////////////////////
+            //
+            // The STL does not provide a mechanism to query the open-mode of a stream.
+            // Therefor there is no way to distinguish between formatted and binary streams.
+            //
+            // ASSUMPTION: here we make the assumption that std::ostream& is some derivate of
+            //             a formatted console entity.
+
+            for (auto& elem : mat)
+            {
+                for (auto& index : elem.first)
+                    os << "{ " << index.l << " }{ " << index.m << " }\t";
+                os << "= " << elem.second << "\n";
+            }
+
+            os.flush();
+
+            return os;
+        }
+
+        template <typename IndexInternalType = Spherical::Index<>::value_type, typename ValueType = double>
+        class Matrix
         {
         public:
-            Index();
-            Index(const Index& in);
-            Index(const IndexType& i_in);
-            Index(const Spherical::IndexPair& lm_in);
-            ~Index();
 
-            explicit operator const IndexType();
+            typedef SpinWeightedSpherical::Index<IndexInternalType>     index_type;
+            typedef ValueType                                           mapped_type;
+            typedef std::array<index_type, 3>                           key_type;
+            typedef std::pair<const key_type, mapped_type>              value_type;
+            typedef std::vector<value_type>                             container_type;
+            typedef typename container_type::size_type                  size_type;
+            typedef typename container_type::iterator                   iterator_type;
+            typedef typename container_type::const_iterator             const_iterator_type;
+            typedef typename container_type::reverse_iterator           reverse_iterator_type;
+            typedef typename container_type::const_reverse_iterator     const_reverse_iterator_type;
+            typedef std::pair<const_iterator_type, const_iterator_type> marker_type;
+            typedef std::vector<marker_type>                            accelerator_structure_type;
 
-            Index& operator+=(const Index& rhs);
-            Index& operator-=(const Index& rhs);
-            Index& operator*=(const Index& rhs);
-            Index& operator/=(const Index& rhs);
+            Matrix() = default;
+            Matrix(const Matrix&) = default;
+            Matrix(Matrix&&) = default;
+            ~Matrix() = default;
 
-            Index operator++(int rhs);
-            Index& operator++();
-            Index operator--(int rhs);
-            Index& operator--();
+            Matrix(const IndexInternalType l_max) : m_data(), m_l_max(l_max) { compute(); }
 
-            IndexType i;
-        };
+            iterator_type begin() { return m_data.begin(); }
+            const_iterator_type begin() const { return m_data.begin(); }
+            const_iterator_type cbegin() const { return m_data.cbegin(); }
 
-        class EXPORT Coefficient
-        {
-        public:
-            Coefficient();
-            Coefficient(const Coefficient& in);
-            Coefficient(const Index& i1_in, const Index& i2_in, const Index& i3_in, const ValueType& value_in);
-            Coefficient(const Spherical::IndexPair& l1m1_in, const Spherical::IndexPair& l2m2_in, const Spherical::IndexPair& l3m3_in, const ValueType& value_in);
-            ~Coefficient();
+            iterator_type end() { return m_data.end(); }
+            const_iterator_type end() const { return m_data.end(); }
+            const_iterator_type cend() const { return m_data.cend(); }
 
-            Spherical::IndexPair l1m1;
-            Spherical::IndexPair l2m2;
-            Spherical::IndexPair l3m3;
-            ValueType value;
-        };
+            reverse_iterator_type rbegin() { return m_data.rbegin(); }
+            const_reverse_iterator_type rbegin() const { return m_data.rbegin(); }
+            const_reverse_iterator_type crbegin() const { return m_data.crbegin(); }
 
-        EXPORT std::ostream& operator<<(std::ostream& os, const Matrix& mat);
+            reverse_iterator_type rend() { return m_data.rend(); }
+            const_reverse_iterator_type rend() const { return m_data.rend(); }
+            const_reverse_iterator_type crend() const { return m_data.crend(); }
 
-        class EXPORT Matrix
-        {
-            friend EXPORT std::ostream& operator<<(std::ostream& os, const Matrix& mat);
+            mapped_type& at(const key_type& pos) { return m_data.at(pos); }                  // Returns specified element of the Matrix with bounds checking
+            const mapped_type& at(const key_type& pos) const { return m_data.at(pos); }      // Returns specified const element of the Matrix with bounds checking
+            mapped_type& operator[](const key_type& pos) { return m_data[pos]; }             // Returns specified element of the Matrix
+            const mapped_type& operator[](const key_type& pos) const { return m_data[pos]; } // Returns specified const element of the Matrix
 
-        public:
-
-            Matrix();
-            Matrix(const Matrix& in);
-            Matrix(Matrix&& in);
-            Matrix(Spherical::Index& L_max_in);
-            ~Matrix();
-
-            Matrix& operator=(Matrix&);
-            Matrix& operator=(Matrix&&);
-
-            typedef std::vector<Coefficient>                container_type;
-            typedef std::pair<ValueType, ValueType>         value_with_error;
-            typedef container_type::size_type               size_type;
-            typedef container_type::iterator                iterator_type;
-            typedef container_type::const_iterator          const_iterator_type;
-            typedef container_type::reverse_iterator        reverse_iterator_type;
-            typedef container_type::const_reverse_iterator  const_reverse_iterator_type;
-
-            iterator_type begin();
-            const_iterator_type begin() const;
-            const_iterator_type cbegin() const;
-
-            iterator_type end();
-            const_iterator_type end() const;
-            const_iterator_type cend() const;
-
-            reverse_iterator_type rbegin();
-            const_reverse_iterator_type rbegin() const;
-            const_reverse_iterator_type crbegin() const;
-
-            reverse_iterator_type rend();
-            const_reverse_iterator_type rend() const;
-            const_reverse_iterator_type crend() const;
-
-            Coefficient at(size_type pos);                      // Returns specified element of the Matrix with bounds checking
-            const Coefficient& at(size_type pos) const;         // Returns specified const element of the Matrix with bounds checking
-            Coefficient operator[](size_type pos);              // Returns specified element of the Matrix
-            const Coefficient& operator[](size_type pos) const; // Returns specified const element of the Matrix
-
-            Coefficient* data();                                // Returns pointer to the underlying memory
-            const Coefficient* data() const;                    // Returns pointer to the underlying memory
-
-            size_type size() const;                             // Returns the number of elements inside the Matrix
-            void clear();                                       // Clear the contents of the Matrix
-
-            Spherical::Index getL() const;                      // Returns L_max the matrix has been created for
+            size_type size() const { return m_data.size(); }    // Returns the number of elements inside the Matrix
+            IndexInternalType getL() const { return m_l_max; }  // Returns L_max the matrix has been created for
+            const marker_type& get_marker(const index_type& index) const { return m_accel.at(Spherical::Index<IndexInternalType>::convert(index)); }
 
         private:
 
-            Spherical::Index m_L_max;                           // L_max the matrix has been created for
             container_type m_data;                              // Container to store values
+            accelerator_structure_type m_accel;                 // Container to store accelerator markers
+            IndexInternalType m_l_max;                          // l_max the matrix has been created for
 
             void compute();                                     // Compute entire matrix
 
-            void computeL(Spherical::Index,
+            container_type computeL(Spherical::Index,
                 std::vector<container_type>*);                  // Compute coefficients with given L1 value
-            /*
-            ValueType wigner3jSymbol(
-                Spherical::IndexPair& LM1,
-                Spherical::IndexPair& LM2,
-                Spherical::IndexPair& LM3);                     // Compute Wigner3J-symbol of given spherical indice
-
-            bool triangleSelectionFail(
-                Spherical::IndexPair&,
-                Spherical::IndexPair&,
-                Spherical::IndexPair&);                         // Helper function
-
-            bool mSelectionFail(
-                Spherical::IndexPair&,
-                Spherical::IndexPair&,
-                Spherical::IndexPair&);                         // Helper function
-
-            bool choose(
-                Spherical::Index&,
-                Spherical::Index&,
-                value_with_error&);                             // Helper function
-
-            ValueType factorial(int i);                         // Helper function
-            */
         };
 
     } // namespace Gaunt
@@ -427,7 +362,7 @@ namespace Multipole
 			container_type m_data;                              // Container to store values
             accelerator_structure_type m_accel;                 // Container to store accelerator markers
 			IndexInternalType m_l_max;                          // l_max the matrix has been created for
-			IndexInternalType m_s_max;                          // s_max the matrix has been created for			
+			IndexInternalType m_s_max;                          // s_max the matrix has been created for
 
 			void compute()                                      // Compute entire matrix
 			{
@@ -515,93 +450,6 @@ namespace Multipole
 
 } // namespace Multipole
 
-namespace Gripper
-{
-    EXPORT extern Multipole::Gaunt::Matrix gaunt;
-} // namespace Gripper
-
-
-////////////////////////////////////////
-// Radial::Index non-member operators //
-////////////////////////////////////////
-
-// Unary 
-Multipole::Radial::Index operator+(const Multipole::Radial::Index& rhs);
-Multipole::Radial::Index operator-(const Multipole::Radial::Index& rhs);
-
-// Binary
-Multipole::Radial::Index operator+(const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs);
-Multipole::Radial::Index operator-(const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs);
-Multipole::Radial::Index operator*(const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs);
-Multipole::Radial::Index operator/(const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs);
-Multipole::Radial::Index operator%(const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs);
-
-bool operator< (const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs);
-bool operator> (const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs);
-bool operator<=(const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs);
-bool operator>=(const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs);
-bool operator==(const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs);
-bool operator!=(const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs);
-
-///////////////////////////////////////////
-// Spherical::Index non-member operators //
-///////////////////////////////////////////
-
-// Unary 
-Multipole::Spherical::Index operator+(const Multipole::Spherical::Index& rhs);
-Multipole::Spherical::Index operator-(const Multipole::Spherical::Index& rhs);
-
-// Binary
-Multipole::Spherical::Index operator+(const Multipole::Spherical::Index& lhs, const Multipole::Spherical::Index& rhs);
-Multipole::Spherical::Index operator-(const Multipole::Spherical::Index& lhs, const Multipole::Spherical::Index& rhs);
-Multipole::Spherical::Index operator*(const Multipole::Spherical::Index& lhs, const Multipole::Spherical::Index& rhs);
-Multipole::Spherical::Index operator/(const Multipole::Spherical::Index& lhs, const Multipole::Spherical::Index& rhs);
-Multipole::Spherical::Index operator%(const Multipole::Spherical::Index& lhs, const Multipole::Spherical::Index& rhs);
-
-bool operator< (const Multipole::Spherical::Index& lhs, const Multipole::Spherical::Index& rhs);
-bool operator> (const Multipole::Spherical::Index& lhs, const Multipole::Spherical::Index& rhs);
-bool operator<=(const Multipole::Spherical::Index& lhs, const Multipole::Spherical::Index& rhs);
-bool operator>=(const Multipole::Spherical::Index& lhs, const Multipole::Spherical::Index& rhs);
-bool operator==(const Multipole::Spherical::Index& lhs, const Multipole::Spherical::Index& rhs);
-bool operator!=(const Multipole::Spherical::Index& lhs, const Multipole::Spherical::Index& rhs);
-
-///////////////////////////////////////////////
-// Spherical::IndexPair non-member operators //
-///////////////////////////////////////////////
-
-// Binary
-bool operator==(const Multipole::Spherical::IndexPair& lhs, const Multipole::Spherical::IndexPair& rhs);
-bool operator!=(const Multipole::Spherical::IndexPair& lhs, const Multipole::Spherical::IndexPair& rhs);
-
-///////////////////////////////////////
-// Gaunt::Index non-member operators //
-///////////////////////////////////////
-
-// Binary
-Multipole::Gaunt::Index operator+(const Multipole::Gaunt::Index& lhs, const Multipole::Gaunt::Index& rhs);
-Multipole::Gaunt::Index operator-(const Multipole::Gaunt::Index& lhs, const Multipole::Gaunt::Index& rhs);
-Multipole::Gaunt::Index operator*(const Multipole::Gaunt::Index& lhs, const Multipole::Gaunt::Index& rhs);
-Multipole::Gaunt::Index operator/(const Multipole::Gaunt::Index& lhs, const Multipole::Gaunt::Index& rhs);
-Multipole::Gaunt::Index operator%(const Multipole::Gaunt::Index& lhs, const Multipole::Gaunt::Index& rhs);
-
-bool operator< (const Multipole::Gaunt::Index& lhs, const Multipole::Gaunt::Index& rhs);
-bool operator> (const Multipole::Gaunt::Index& lhs, const Multipole::Gaunt::Index& rhs);
-bool operator<=(const Multipole::Gaunt::Index& lhs, const Multipole::Gaunt::Index& rhs);
-bool operator>=(const Multipole::Gaunt::Index& lhs, const Multipole::Gaunt::Index& rhs);
-bool operator==(const Multipole::Gaunt::Index& lhs, const Multipole::Gaunt::Index& rhs);
-bool operator!=(const Multipole::Gaunt::Index& lhs, const Multipole::Gaunt::Index& rhs);
-
-/////////////////////////////////////////////
-// Gaunt::Coefficient non-member operators //
-/////////////////////////////////////////////
-
-bool operator< (const Multipole::Gaunt::Coefficient& lhs, const Multipole::Gaunt::Coefficient& rhs);
-bool operator> (const Multipole::Gaunt::Coefficient& lhs, const Multipole::Gaunt::Coefficient& rhs);
-bool operator<=(const Multipole::Gaunt::Coefficient& lhs, const Multipole::Gaunt::Coefficient& rhs);
-bool operator>=(const Multipole::Gaunt::Coefficient& lhs, const Multipole::Gaunt::Coefficient& rhs);
-bool operator==(const Multipole::Gaunt::Coefficient& lhs, const Multipole::Gaunt::Coefficient& rhs);
-bool operator!=(const Multipole::Gaunt::Coefficient& lhs, const Multipole::Gaunt::Coefficient& rhs);
-
 ///////////////////////////////////////////////////////
 // SpinWeightedSpherical::Index non-member operators //
 ///////////////////////////////////////////////////////
@@ -609,5 +457,3 @@ bool operator!=(const Multipole::Gaunt::Coefficient& lhs, const Multipole::Gaunt
 // Binary
 template <typename AT> bool operator==(const Multipole::SpinWeightedSpherical::Index<AT>& lhs, const Multipole::SpinWeightedSpherical::Index<AT>& rhs) { return (lhs.l == rhs.l) && (lhs.m == rhs.m) && (lhs.s == rhs.s); }
 template <typename AT> bool operator!=(const Multipole::SpinWeightedSpherical::Index<AT>& lhs, const Multipole::SpinWeightedSpherical::Index<AT>& rhs) { return (lhs.l != rhs.l) || (lhs.m != rhs.m) || (lhs.s != rhs.s); }
-
-#endif // MULTIPOLETYPES_HPP
