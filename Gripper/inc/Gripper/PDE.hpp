@@ -6,8 +6,7 @@
 //                                                                  //
 //////////////////////////////////////////////////////////////////////
 
-#ifndef PDE_HPP
-#define PDE_HPP
+#pragma once
 
 
 // Standard C++ includes
@@ -25,7 +24,7 @@ namespace PDE
 
         // StateVector interface
 
-        template <int N> auto get() const { return static_cast<const T&>(*this).get<N>(); }
+        template <int N> auto get() const { return static_cast<const T&>(*this).template get<N>(); }
 
         // Expression interface
 
@@ -39,17 +38,16 @@ namespace PDE
     {
     public:
 
-        Sum(Expression<E1> const& u, Expression<E2> const& v) : _u(u), _v(v) { /*ASSERT MISSING*/ }
+        Sum(const Expression<E1>& u, const Expression<E2>& v) : _u(u), _v(v) { /*ASSERT MISSING*/ }
 
         // StateVector interface
 
-        //template <int N, typename R = std::result_of<operator+(E1::get<N>(), E2::get<N>())>::type> const R& get() { return _u.get<N>() + _v.get<N>(); }
-        template <int N> auto get() const { return _u.get<N>() + _v.get<N>(); }
+        template <int N> auto get() const { return _u.template get<N>() + _v.template get<N>(); }
 
     private:
 
-        E1 const& _u;
-        E2 const& _v;
+        const E1& _u;
+        const E2& _v;
     };
 
 
@@ -58,38 +56,27 @@ namespace PDE
     {
     public:
 
-        Scale(float alpha, Expression<E> const& v) : _alpha(alpha), _v(v) { /*ASSERT MISSING*/ }
+        Scale(const float alpha, const Expression<E>& v) : _alpha(alpha), _v(v) { /*ASSERT MISSING*/ }
 
         // StateVector interface
 
-        //template <int N, typename R = std::result_of<operator*(float, E::get<N>())>::type> const R& get() { return _alpha * _v.get<N>(); }
-        template <int N> auto get() const { return _alpha * _v.get<N>(); }
+        template <int N> auto get() const { return _alpha * _v.template get<N>(); }
 
     private:
 
         float _alpha;
-        E const& _v;
+        const E& _v;
     };
 
-
-    template <typename E> Scale<E> const operator*(const float alpha, Expression<E> const& v) { return Scale<E>(alpha, v); }
-    template <typename E1, typename E2> Sum<E1, E2> const operator+(Expression<E1> const& u, Expression<E2> const& v) { return Sum<E1, E2>(u, v); }
-
-
-    template <typename... T>
-    class StateVector : public Expression<StateVector<T...>>
+    namespace impl
     {
-    private:
-
-        std::tuple<T...> m_values;
-
         template <int N>
         struct Assign
         {
-            template <typename ET>
+            template <typename ET, typename... T>
             static void assign(std::tuple<T...>& dst, const ET& src)
             {
-                std::get<N>(dst) = src.get<N>();
+                std::get<N>(dst) = src.template get<N>();
                 Assign<N - 1>::assign(dst, src);
             }
         };
@@ -98,12 +85,21 @@ namespace PDE
         template <>
         struct Assign<0>
         {
-            template <typename ET>
+            template <typename ET, typename... T>
             static void assign(std::tuple<T...>& dst, const ET& src)
             {
-                std::get<0>(dst) = src.get<0>();
+                std::get<0>(dst) = src.template get<0>();
             }
         };
+    }
+
+
+    template <typename... T>
+    class StateVector : public Expression<StateVector<T...>>
+    {
+    private:
+
+        std::tuple<T...> m_values;
 
     public:
 
@@ -121,11 +117,8 @@ namespace PDE
         StateVector(const T&... values) : m_values(std::make_tuple(values...)) {}
         StateVector(T&&... values) : m_values(std::make_tuple(values...)) {}
 
-        //template <int N, typename R = std::tuple_element<N, std::tuple<T...>>::type> const R& get() { return std::get<N>(m_values); }
-        //template <int N, typename R = std::tuple_element<N, std::tuple<T...>>::type> R& get() { return std::get<N>(m_values); }
-
-        template <int N> auto get() const { return std::get<N>(m_values); }
-        template <int N> auto get() { return std::get<N>(m_values); }
+        template <int N> auto& get() const { return std::get<N>(m_values); }
+        template <int N> auto& get() { return std::get<N>(m_values); }
 
         // Expression interface
 
@@ -135,7 +128,7 @@ namespace PDE
             // Extract type from encapsulating expression
             StateVecExpr const& v = expr;
 
-            Assign<(sizeof...(T)) - 1>::assign(m_values, v);
+            impl::Assign<(sizeof...(T)) - 1>::assign(m_values, v);
         }
     };
 
@@ -147,13 +140,13 @@ namespace PDE
         {
         public:
 
-            Solver() {}
+            Solver() = default;
             Solver(const Solver& in) = delete;
-            Solver(Solver&& src) = delete;
-            ~Solver() {}
+            Solver(Solver&& src) = default;
+            ~Solver() = default;
 
             void setLHS(StateVector<States...>&& lhs_in) { m_lhs = lhs_in; }
-            StateVector<States...>& getLHS() { return m_lhs; }
+            const StateVector<States...>& getLHS() { return m_lhs; }
             
             void setEquationSystem(std::function<StateVector<States...>(const StateVector<States...>&)> evaluate) { m_func = evaluate; }
             std::function<StateVector<States...>(const StateVector<States...>&)> getEquationSystem() { return m_func; }
@@ -192,4 +185,10 @@ namespace PDE
     
 } // namespace PDE
 
-#endif // PDE_HPP
+
+///////////////////////////////////////////
+// PDE::StateVector non-member operators //
+///////////////////////////////////////////
+
+template <typename E> auto operator*(const float alpha, const PDE::Expression<E>& v) { return PDE::Scale<E>(alpha, v); }
+template <typename E1, typename E2> auto operator+(const PDE::Expression<E1>& u, const PDE::Expression<E2>& v) { return PDE::Sum<E1, E2>(u, v); }

@@ -1,6 +1,6 @@
 #include <Gripper/MultipoleTypes.hpp>
 
-
+/*
 /////////////////////////////////
 //                             //
 // Multipole::Spherical::Index //
@@ -95,3 +95,4 @@ Multipole::Spherical::IndexPair::~IndexPair() {}
 // Binary
 bool operator==(const Multipole::Spherical::IndexPair& lhs, const Multipole::Spherical::IndexPair& rhs) { return (lhs.l == rhs.l) && (lhs.m == rhs.m); }
 bool operator!=(const Multipole::Spherical::IndexPair& lhs, const Multipole::Spherical::IndexPair& rhs) { return (lhs.l != rhs.l) || (lhs.m != rhs.m); }
+*/

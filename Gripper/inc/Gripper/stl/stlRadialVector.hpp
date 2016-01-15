@@ -1,21 +1,13 @@
-#ifndef STLRADIALVECTOR_HPP
-#define STLRADIALVECTOR_HPP
-
-// Reading settings from CMake build configuration
-#include <Gripper/Gripper_Config.hpp>
-#include <Gripper/Gripper_Export.hpp>
+#pragma once
 
 // Gripper includes
-#include <Gripper/stl/stlMultipoleDefs.hpp>     // Forward declaration of Multipole types
+#include <Gripper/stl/stlParity.hpp>
+#include <Gripper/stl/stlRadialIndex.hpp>
 #include <Gripper/stl/stlRadialExtent.hpp>
-#include <Gripper/stl/stlRuntime.hpp>           // For ability to read global runtime configuration
 
 // Standard C++ includes
 #include <vector>                   // Needed for internal storage and providing results
-#include <future>                   // Needed for guided parallel processing
 #include <utility>                  // Needed for std::pair, std::declval
-//#include <type_traits>              // Needed for Expression typedefs
-
 
 namespace Multipole
 {
@@ -23,14 +15,15 @@ namespace Multipole
     {
         namespace Radial
         {
-            template <typename VT>
-            class Traits
+            template <typename DT, typename IT, typename VT>
+            class VectorTraits
             {
             public:
 
                 // Common typedefs
 
                 typedef VT value_type;
+                typedef DT distance_type;
 
                 // STL typedefs
 
@@ -43,15 +36,34 @@ namespace Multipole
 
                 // Lattice typedefs
 
-                typedef Extent                                  extent_type;
+                typedef Extent<IT>                              extent_type;
                 typedef typename extent_type::index_type        index_type;
             };
 
 
-            template <typename ET, typename VT>
-            class Expression : public Traits<VT>
+            template <typename ET, typename DT, typename IT, typename VT>
+            class Expression : public VectorTraits<DT, IT, VT>
             {
             public:
+
+                // Common typedefs
+
+                using typename VectorTraits<DT, IT, VT>::value_type;
+                using typename VectorTraits<DT, IT, VT>::distance_type;
+
+                // STL typedefs
+
+                using typename VectorTraits<DT, IT, VT>::container_type;
+                using typename VectorTraits<DT, IT, VT>::size_type;
+                using typename VectorTraits<DT, IT, VT>::iterator_type;
+                using typename VectorTraits<DT, IT, VT>::const_iterator_type;
+                using typename VectorTraits<DT, IT, VT>::reverse_iterator_type;
+                using typename VectorTraits<DT, IT, VT>::const_reverse_iterator_type;
+
+                // Lattice typedefs
+
+                using typename VectorTraits<DT, IT, VT>::extent_type;
+                using typename VectorTraits<DT, IT, VT>::index_type;
                 
                 // STL interface
 
@@ -61,6 +73,7 @@ namespace Multipole
 
                 // Lattice interface
 
+                distance_type separation()          const { return static_cast<ET const&>(*this).separation(); }
                 extent_type extent()                const { return static_cast<ET const&>(*this).extent(); }
                 value_type  at(const index_type& i) const { return static_cast<ET const&>(*this).at(i); }
 
@@ -71,20 +84,39 @@ namespace Multipole
             };
 
 
-            template <typename VT>
-            class Vector : public Expression<Vector<VT>, VT>
+            template <typename DT, typename IT, typename VT>
+            class Vector : public Expression<Vector<DT, IT, VT>, DT, IT, VT>
             {
             public:
 
+                // Common typedefs
+
+                using typename VectorTraits<DT, IT, VT>::value_type;
+                using typename VectorTraits<DT, IT, VT>::distance_type;
+
+                // STL typedefs
+
+                using typename VectorTraits<DT, IT, VT>::container_type;
+                using typename VectorTraits<DT, IT, VT>::size_type;
+                using typename VectorTraits<DT, IT, VT>::iterator_type;
+                using typename VectorTraits<DT, IT, VT>::const_iterator_type;
+                using typename VectorTraits<DT, IT, VT>::reverse_iterator_type;
+                using typename VectorTraits<DT, IT, VT>::const_reverse_iterator_type;
+
+                // Lattice typedefs
+
+                using typename VectorTraits<DT, IT, VT>::extent_type;
+                using typename VectorTraits<DT, IT, VT>::index_type;
+
                 // Common interface
 
-                Vector() { CALLING }
-                Vector(const Vector& in) : m_data(in.m_data) { CALLING }
-                Vector(Vector&& in) : m_data(std::move(in.m_data)), m_extent(std::move(in.m_extent)) { CALLING }
-                ~Vector() { CALLING }
+                Vector() = default;
+                Vector(const Vector&) = default;
+                Vector(Vector&&) = default;
+                ~Vector() = default;
 
-                //Vector& operator=(Vector&) { m_data = in.m_data; return *this; }
-                //Vector& operator=(Vector&&) { m_data = std::move(in.m_data); return *this; }
+                Vector& operator=(Vector&) = default;
+                Vector& operator=(Vector&&) = default;
 
                 // STL interface
 
@@ -117,205 +149,266 @@ namespace Multipole
 
                 // Lattice interface
 
-                Vector(const Extent& ext) : m_data(static_cast<size_type>(ext.final() - ext.initial())), m_extent(ext) { CALLING }
+                Vector(const distance_type& separation, const extent_type& ext) : m_separation(separation), m_extent(ext), m_data(static_cast<size_type>(ext.final() - ext.initial() + 1)) {}
 
-                value_type& at(const index_type& pos) { return m_data.at(pos.r); }
-                const value_type& at(const index_type& pos) const { return m_data.at(pos.r); }
+                //
+                // Note: the const and non-const interface differs on purpose. While it would be possible to return a proxy object of a mirrored
+                //       value, it is prohibited intentionally. It is an algorithmic mistake if one tries to modified values with no real storage.
+                //
 
+                value_type& at(const index_type& pos)
+                {
+                    if (!m_extent.contains(pos)) assert("Radial::Vector: index out of range");
+
+                    return m_data.at(convert(pos));
+                }
+
+                const value_type& at(const index_type& pos) const
+                {
+                    if (pos >= 0)
+                    {
+                        if (!m_extent.contains(pos)) assert("Radial::Vector: index out of range");
+
+                        return m_data.at(convert(pos));
+                    }
+                    else
+                    {
+                        if (!m_extent.contains(-pos)) assert("Radial::Vector: index out of range");
+
+                        const auto& elem = m_data.at(convert(-pos));
+
+                        return static_cast<value_type>(value_type::parity * value_type::l_parity(elem.extent()) * elem);
+                    }
+                }
+
+                distance_type separation() const { return m_separation; }
                 extent_type extent() const { return m_extent; }
 
                 // Exrpession interface
 
-                template <typename VecExpr, typename ValueType>
-                Vector(Expression<VecExpr, ValueType> const& expr)
+                template <typename VecExpr, typename IndexType, typename ValueType>
+                Vector(Expression<VecExpr, distance_type, IndexType, ValueType> const& expr)
                 {
-                    ENTERING
-
                     // Extract type from encapsulating expression
                     VecExpr const& v = expr;
-
-                    Gripper::stl::clog << Gripper::DEBUG << "m_extent = {" << m_extent.final().r - m_extent.initial().r << "}\texpr.extent() = {" << v.extent().final().r - v.extent().initial().r << "}";
-                    Gripper::stl::clog << Gripper::DEBUG << "m_data.size() = " << m_data.size() << "\texpr.size() = " << expr.size();
 
                     // Resize if needed
                     if (m_extent != v.extent())
                     {
-                        Gripper::stl::clog << Gripper::DEBUG << "Radial::Vector::Vector{resize()}";
+                        //std::cout << "Resizing from " << m_extent << " to " << v.extent() << std::endl;
                         m_extent = v.extent();
                         m_data.resize(v.size());
                     }
 
-                    if (Gripper::stl::Private::g_runtime.getCompilerParallelization()) for (index_type i = m_extent.initial(); i != m_extent.final(); ++i) this->at(i) = v.at(i);
-                    else
-                    {
-                        std::vector<std::pair<index_type, index_type>> ranges(std::thread::hardware_concurrency());
-                        std::vector<std::future<void>> jobs(std::thread::hardware_concurrency());
-                        for (std::size_t i = 0; i < ranges.size(); ++i)
-                        {
-                            ranges.at(i).first  = m_extent.initial() + (m_extent.final() - m_extent.initial()) * static_cast<index_type::value_type>((i    ) / ranges.size());
-                            ranges.at(i).second = m_extent.initial() + (m_extent.final() - m_extent.initial()) * static_cast<index_type::value_type>((i + 1) / ranges.size());
-                        }
+                    // Unconditional copy of separation
+                    m_separation = v.separation();
 
-                        for (std::size_t j = 0; j < jobs.size(); ++j) jobs.at(j) = std::async(std::launch::async, [=]()
-                        {
-                            for (index_type i = ranges.at(j).first; i < ranges.at(j).second; ++i) this->at(i) = v.at(i);
-                        });
-                        for (auto& job : jobs) job.wait();
-                    }
-
-                    LEAVING
+                    for (index_type i = m_extent.initial(); m_extent.contains(i); ++i)
+                        this->at(i) = v.at(i);
                 }
 
             private:
 
-                container_type m_data;
+                size_type convert(const index_type& i) const
+                {
+                    return static_cast<size_type>(i - m_extent.initial());
+                }
+
+                distance_type m_separation;
                 extent_type m_extent;
+                container_type m_data;
             };
 
 
-            template <typename E1, typename E2>
-            class Sum : public Expression<Sum<E1, E2>, decltype(std::declval<typename E1::value_type>() + std::declval<typename E2::value_type>())>
+            template <typename DT, typename ET, typename VT, typename F>
+            struct Func : public Expression<Func<DT, ET, VT, F>, DT, typename ET::index_type, VT>
             {
-            private:
-
-                typedef decltype(std::declval<typename E1::value_type>() + std::declval<typename E2::value_type>()) return_type;
-
             public:
 
-                Sum(Expression<E1, typename E1::value_type> const& u, Expression<E2, typename E2::value_type> const& v) : _u(u), _v(v) { assert(u.size() == v.size()); }
+                // Common typedefs
+
+                using typename VectorTraits<DT, typename ET::index_type, VT>::value_type;
+                using typename VectorTraits<DT, typename ET::index_type, VT>::distance_type;
+
+                // STL typedefs
+
+                using typename VectorTraits<DT, typename ET::index_type, VT>::size_type;
+
+                // Lattice typedefs
+
+                using typename VectorTraits<DT, typename ET::index_type, VT>::extent_type;
+                using typename VectorTraits<DT, typename ET::index_type, VT>::index_type;
+
+                Func(const distance_type& sep, const extent_type& ext, const F& f) : m_sep(sep), m_ext(ext), m_f(f) {}
 
                 // STL interface
 
-                size_type   size()                  const { return _v.size(); }
-                return_type operator[](size_type i) const { return _u[i] + _v[i]; }
-                return_type at(size_type i)         const { return _u.at(i) + _v.at(i); }
+                size_type  size()                  const { return static_cast<size_type>(extent().final() - extent().initial() + 1); }
+                value_type operator[](size_type i) const { return m_f[static_cast<size_type>(i - extent().initial())]; }
+                value_type at(size_type i)         const { return m_f.at(static_cast<size_type>(i - extent().initial())); }
 
                 // Lattice interface
 
-                extent_type extent()                const { return _v.extent(); }
-                return_type at(index_type i)        const { return _u.at(i) + _v.at(i); }
+                distance_type separation()         const { return m_sep; }
+                extent_type extent()               const { return m_ext; }
+                value_type at(index_type i)        const { return m_f(i); }
 
             private:
 
-                E1 const& _u;
-                E2 const& _v;
+                distance_type m_sep;
+                extent_type m_ext;
+                F m_f;
             };
 
 
-            template <typename E1, typename E2>
-            class Dif : public Expression<Dif<E1, E2>, decltype(std::declval<typename E1::value_type>() - std::declval<typename E2::value_type>())>
+            template <typename E, typename F>
+            class Map : public Expression<Map<E, F>, typename E::distance_type, typename E::index_type, typename std::result_of<F(typename E::value_type)>::type>
             {
-            private:
-
-                typedef decltype(std::declval<typename E1::value_type>() - std::declval<typename E2::value_type>()) return_type;
-
             public:
 
-                Dif(Expression<E1, typename E1::value_type> const& u, Expression<E2, typename E2::value_type> const& v) : _u(u), _v(v) { assert(u.size() == v.size()); }
+                // Common typedefs
+
+                using typename VectorTraits<typename E::distance_type, typename E::index_type, typename std::result_of<F(typename E::value_type)>::type>::value_type;
+                using typename VectorTraits<typename E::distance_type, typename E::index_type, typename std::result_of<F(typename E::value_type)>::type>::distance_type;
+
+                // STL typedefs
+
+                using typename VectorTraits<typename E::distance_type, typename E::index_type, typename std::result_of<F(typename E::value_type)>::type>::size_type;
+
+                // Lattice typedefs
+
+                using typename VectorTraits<typename E::distance_type, typename E::index_type, typename std::result_of<F(typename E::value_type)>::type>::extent_type;
+                using typename VectorTraits<typename E::distance_type, typename E::index_type, typename std::result_of<F(typename E::value_type)>::type>::index_type;
+
+                Map(Expression<E, typename E::distance_type, typename E::index_type, typename E::value_type> const& u, const F& f) : _u(u), _f(f) {}
 
                 // STL interface
 
-                size_type   size()                  const { return _v.size(); }
-                return_type operator[](size_type i) const { return _u[i] - _v[i]; }
-                return_type at(size_type i)         const { return _u.at(i) - _v.at(i); }
+                size_type  size()                  const { return _u.size(); }
+                value_type operator[](size_type i) const { return _f(u[i]); }
+                value_type at(size_type i)         const { return _f(_u.at(i)); }
 
                 // Lattice interface
 
-                extent_type extent()                const { return _v.extent(); }
-                return_type at(index_type i)        const { return _u.at(i) - _v.at(i); }
+                distance_type separation()         const { return _u.separation(); }
+                extent_type extent()               const { return _u.extent(); }
+                value_type at(index_type i)        const { return _f(_u.at(i)); }
 
             private:
 
-                E1 const& _u;
-                E2 const& _v;
+                const E& _u;
+                F _f;
             };
 
 
-            template <typename E1, typename E2>
-            class Mul : public Expression<Mul<E1, E2>, decltype(std::declval<typename E1::value_type>() * std::declval<typename E2::value_type>())>
+            template <typename E1, typename E2, typename F>
+            class Zip : public Expression<Zip<E1, E2, F>,
+                                          decltype(std::declval<typename E1::distance_type>() * std::declval<typename E2::distance_type>()),
+                                          typename E1::index_type,
+                                          typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>
             {
-            private:
-
-                typedef decltype(std::declval<typename E1::value_type>() * std::declval<typename E2::value_type>()) return_type;
-
             public:
 
-                Mul(Expression<E1, typename E1::value_type> const& u, Expression<E2, typename E2::value_type> const& v) : _u(u), _v(v) { assert(u.size() == v.size()); }
+                // Common typedefs
+
+                using typename VectorTraits<decltype(std::declval<typename E1::distance_type>() * std::declval<typename E2::distance_type>()), typename E1::index_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>::value_type;
+                using typename VectorTraits<decltype(std::declval<typename E1::distance_type>() * std::declval<typename E2::distance_type>()), typename E1::index_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>::distance_type;
+
+                // STL typedefs
+
+                using typename VectorTraits<decltype(std::declval<typename E1::distance_type>() * std::declval<typename E2::distance_type>()), typename E1::index_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>::size_type;
+
+                // Lattice typedefs
+
+                using typename VectorTraits<decltype(std::declval<typename E1::distance_type>() * std::declval<typename E2::distance_type>()), typename E1::index_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>::extent_type;
+                using typename VectorTraits<decltype(std::declval<typename E1::distance_type>() * std::declval<typename E2::distance_type>()), typename E1::index_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>::index_type;
+
+                Zip(Expression<E1, typename E1::distance_type, typename E1::index_type, typename E1::value_type> const& u, Expression<E2, typename E2::distance_type, typename E2::index_type, typename E2::value_type> const& v, const F& f) : _u(u), _v(v), _f(f)
+                {
+                    assert(u.separation() == v.separation());
+                    assert(u.extent() == v.extent());
+                }
 
                 // STL interface
 
-                size_type   size()                  const { return _v.size(); }
-                return_type operator[](size_type i) const { return _u[i] * _v[i]; }
-                return_type at(size_type i)         const { return _u.at(i) * _v.at(i); }
+                size_type  size()                  const { return _u.size(); }
+                value_type operator[](size_type i) const { return _f(u[i], _v[i]); }
+                value_type at(size_type i)         const { return _f(_u.at(i), _v.at(i)); }
 
                 // Lattice interface
 
-                extent_type extent()                const { return _v.extent(); }
-                return_type at(index_type i)        const { return _u.at(i) * _v.at(i); }
+                distance_type separation()         const { return _u.separation(); }
+                extent_type extent()               const { return _u.extent(); }
+                value_type at(index_type i)        const { return _f(_u.at(i), _v.at(i)); }
 
             private:
 
-                E1 const& _u;
-                E2 const& _v;
-            };
-
-
-            template <typename E1, typename E2>
-            class Div : public Expression<Div<E1, E2>, decltype(std::declval<typename E1::value_type>() / std::declval<typename E2::value_type>())>
-            {
-            private:
-
-                typedef decltype(std::declval<typename E1::value_type>() / std::declval<typename E2::value_type>()) return_type;
-
-            public:
-
-                Div(Expression<E1, typename E1::value_type> const& u, Expression<E2, typename E2::value_type> const& v) : _u(u), _v(v) { assert(u.size() == v.size()); }
-
-                // STL interface
-
-                size_type   size()                  const { return _v.size(); }
-                return_type operator[](size_type i) const { return _u[i] / _v[i]; }
-                return_type at(size_type i)         const { return _u.at(i) / _v.at(i); }
-
-                // Lattice interface
-
-                extent_type extent()                const { return _v.extent(); }
-                return_type at(index_type i)        const { return _u.at(i) / _v.at(i); }
-
-            private:
-
-                E1 const& _u;
-                E2 const& _v;
+                const E1& _u;
+                const E2& _v;
+                F _f;
             };
 
 
             template <typename E>
-            class Scale : public Expression<Scale<E>, decltype(std::declval<double>() * std::declval<typename E::value_type>())>
+            class Derivate : public Expression<Derivate<E>, typename E::distance_type, typename E::index_type, typename E::value_type>
             {
-            private:
-
-                typedef decltype(std::declval<double>() * std::declval<typename E::value_type>()) return_type;
-
             public:
 
-                Scale(double alpha, Expression<E, typename E::value_type> const& v) : _alpha(alpha), _v(v) {}
+                // Common typedefs
+
+                using typename VectorTraits<typename E::distance_type, typename E::index_type, typename E::value_type>::value_type;
+                using typename VectorTraits<typename E::distance_type, typename E::index_type, typename E::value_type>::distance_type;
+
+                // STL typedefs
+
+                using typename VectorTraits<typename E::distance_type, typename E::index_type, typename E::value_type>::size_type;
+
+                // Lattice typedefs
+
+                using typename VectorTraits<typename E::distance_type, typename E::index_type, typename E::value_type>::extent_type;
+                using typename VectorTraits<typename E::distance_type, typename E::index_type, typename E::value_type>::index_type;
+
+                Derivate(Expression<E, typename E::distance_type, typename E::index_type, typename E::value_type> const& u) : m_u(u) {}
 
                 // STL interface
 
-                size_type   size()                  const { return _v.size(); }
-                return_type operator[](size_type i) const { return _alpha * _v[i]; }
-                return_type at(size_type i)         const { return _alpha * _v.at(i); }
+                size_type  size()                  const { return m_u.size(); }
+                value_type operator[](size_type i) const { static_assert(false, "This function is not yet implemented"); return m_u(u[i]); }
+                value_type at(size_type i)         const { static_assert(false, "This function is not yet implemented"); return m_u.at(i); }
 
                 // Lattice interface
 
-                extent_type extent()                const { return _v.extent(); }
-                return_type at(index_type i)        const { return _alpha * _v.at(i); }
+                distance_type separation()         const { return m_u.separation(); }
+                extent_type extent()               const { return m_u.extent(); }
+                value_type at(index_type i)        const
+                {
+                    if (i < extent().final() - 2)
+                        return static_cast<value_type>((8 * (m_u.at(i+1) - m_u.at(i-1)) + m_u.at(i-2) - m_u.at(i+2)) / (12 * m_u.separation()));
+                    else
+                    {
+                        if (i == extent().final() - 1)
+                            return static_cast<value_type>((m_u.at(i+1) - m_u.at(i-1)) / (2 * m_u.separation()));
+                        else
+                            return static_cast<value_type>((m_u.at(i) - m_u.at(i-1)) / m_u.separation());
+                    }
+                }
 
             private:
 
-                double _alpha;
-                E const& _v;
+                const E& m_u;
             };
+
+            template <typename DT, typename ET, typename F>
+            auto func(const DT& sep, const ET& ext, const F& f) { return Func<DT, ET, typename std::result_of<F(typename ET::index_type)>::type, F>(sep, ext, f); }
+
+            template <typename E, typename F>
+            auto map(const Expression<E, typename E::distance_type, typename E::index_type, typename E::value_type>& u, const F& f) { return Map<E, F>(u, f); }
+
+            template <typename E1, typename E2, typename F>
+            auto zip(const Expression<E1, typename E1::distance_type, typename E1::index_type, typename E1::value_type>& u, const Expression<E2, typename E2::distance_type, typename E2::index_type, typename E2::value_type>& v, const F& f) { return Zip<E1, E2, F>(u, v, f); }
+
+            template <typename E>
+            auto derivate(const Expression<E, typename E::distance_type, typename E::index_type, typename E::value_type>& u) { return Derivate<E>(u); }
 
         } // namespace Radial
 
@@ -329,16 +422,13 @@ namespace Multipole
 /////////////////////////////////////////
 
 // Unary 
-template <typename E, typename T> Multipole::stl::Radial::Scale<E> const operator+(Multipole::stl::Radial::Expression<E, T> const& v) { return Multipole::stl::Radial::Scale<E>(1.0, v); }
-template <typename E, typename T> Multipole::stl::Radial::Scale<E> const operator-(Multipole::stl::Radial::Expression<E, T> const& v) { return Multipole::stl::Radial::Scale<E>(-1.0, v); }
+template <typename E, typename D, typename I, typename T> auto operator+(Multipole::stl::Radial::Expression<E, D, I, T> const& v) { return Multipole::stl::Radial::map(v, [](auto&& val) { return static_cast<T>(1) * val; }); }
+template <typename E, typename D, typename I, typename T> auto operator-(Multipole::stl::Radial::Expression<E, D, I, T> const& v) { return Multipole::stl::Radial::map(v, [](auto&& val) { return static_cast<T>(-1) * val; }); }
 
 // Binary
-template <typename E1, typename E2, typename T1, typename T2> Multipole::stl::Radial::Sum<E1, E2> const operator+(Multipole::stl::Radial::Expression<E1, T1> const& u, Multipole::stl::Radial::Expression<E2, T2> const& v) { return Multipole::stl::Radial::Sum<E1, E2>(u, v); }
-template <typename E1, typename E2, typename T1, typename T2> Multipole::stl::Radial::Dif<E1, E2> const operator-(Multipole::stl::Radial::Expression<E1, T1> const& u, Multipole::stl::Radial::Expression<E2, T2> const& v) { return Multipole::stl::Radial::Dif<E1, E2>(u, v); }
-template <typename E1, typename E2, typename T1, typename T2> Multipole::stl::Radial::Mul<E1, E2> const operator*(Multipole::stl::Radial::Expression<E1, T1> const& u, Multipole::stl::Radial::Expression<E2, T2> const& v) { return Multipole::stl::Radial::Mul<E1, E2>(u, v); }
-template <typename E1, typename E2, typename T1, typename T2> Multipole::stl::Radial::Div<E1, E2> const operator/(Multipole::stl::Radial::Expression<E1, T1> const& u, Multipole::stl::Radial::Expression<E2, T2> const& v) { return Multipole::stl::Radial::Div<E1, E2>(u, v); }
+template <typename E1, typename E2, typename D, typename I1, typename I2, typename T1, typename T2> auto operator+(Multipole::stl::Radial::Expression<E1, D, I1, T1> const& u, Multipole::stl::Radial::Expression<E2, D, I2, T2> const& v) { return Multipole::stl::Radial::zip(u, v, [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
+template <typename E1, typename E2, typename D, typename I1, typename I2, typename T1, typename T2> auto operator-(Multipole::stl::Radial::Expression<E1, D, I1, T1> const& u, Multipole::stl::Radial::Expression<E2, D, I2, T2> const& v) { return Multipole::stl::Radial::zip(u, v, [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
+template <typename E1, typename E2, typename D, typename I1, typename I2, typename T1, typename T2> auto operator*(Multipole::stl::Radial::Expression<E1, D, I1, T1> const& u, Multipole::stl::Radial::Expression<E2, D, I2, T2> const& v) { return Multipole::stl::Radial::zip(u, v, [](auto&& lhs, auto&& rhs) { return lhs * rhs; }); }
 
-template <typename E, typename T> Multipole::stl::Radial::Scale<E> const operator*(const double alpha, Multipole::stl::Radial::Expression<E, T> const& v) { return Multipole::stl::Radial::Scale<E>(alpha, v); }
-template <typename E, typename T> Multipole::stl::Radial::Scale<E> const operator*(Multipole::stl::Radial::Expression<E, T> const& v, const double alpha) { return Multipole::stl::Radial::Scale<E>(alpha, v); }
-
-#endif // STLRADIALVECTOR_HPP
+template <typename E, typename D, typename I, typename T, typename Scalar> auto operator*(const Scalar& alpha, Multipole::stl::Radial::Expression<E, D, I, T> const& v) { return Multipole::stl::Radial::map(v, [=](auto&& val) { return alpha * val; }); }
+template <typename E, typename D, typename I, typename T, typename Scalar> auto operator*(Multipole::stl::Radial::Expression<E, D, I, T> const& v, const Scalar& alpha) { return Multipole::stl::Radial::map(v, [=](auto&& val) { return alpha * val; }); }

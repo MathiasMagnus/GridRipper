@@ -1,5 +1,5 @@
 #include <Gripper/MultipoleTypes.hpp>
-
+/*
 
 //////////////////////////////
 //                          //
@@ -62,3 +62,4 @@ bool operator<=(const Multipole::Radial::Index& lhs, const Multipole::Radial::In
 bool operator>=(const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs) { return lhs.r >= rhs.r; }
 bool operator==(const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs) { return lhs.r == rhs.r; }
 bool operator!=(const Multipole::Radial::Index& lhs, const Multipole::Radial::Index& rhs) { return lhs.r != rhs.r; }
+*/

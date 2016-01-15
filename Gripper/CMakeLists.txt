@@ -181,18 +181,10 @@ endif (GR_BUILD_VISUALIZER_SUPPORT)
 
 
 # Adding library target for build
-add_library (Gripper SHARED ${Gripper_BUILD})
-target_link_libraries (Gripper ${Gripper_ADDITIONAL_LIBS})
+#add_library (Gripper SHARED ${Gripper_BUILD})
+#target_link_libraries (Gripper ${Gripper_ADDITIONAL_LIBS})
 # http://www.cmake.org/cmake/help/v2.8.11/cmake.html#command:add_library
 
 
 # Create project groups for IDEs
-set_target_properties (Gripper PROPERTIES FOLDER "Library")
-
-
-# Add platform specific compile options
-if(MSVC_VERSION)
-#set_target_properties (Gripper PROPERTIES
-#                       COMPILE_FLAGS ${MSVC_COMPILER_FLAGS}
-#                       LINK_FLAGS ${MSVC_LINKER_FLAGS})
-endif(MSVC_VERSION)
+#set_target_properties (Gripper PROPERTIES FOLDER "Library")

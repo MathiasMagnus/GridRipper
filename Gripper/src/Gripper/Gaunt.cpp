@@ -1,5 +1,5 @@
 #include <Gripper/MultipoleTypes.hpp>
-
+/*
 
 /////////////////////////////
 //                         //
@@ -236,10 +236,12 @@ void Multipole::Gaunt::Matrix::computeL(Spherical::Index L1, std::vector<contain
                         Spherical::IndexPair L1M0(L1 * 2, 0);
                         Spherical::IndexPair L2M0(L2 * 2, 0);
                         Spherical::IndexPair L3M0(L3 * 2, 0);
+                        */
                         /*
                         ValueType temp1 = wigner3jSymbol(L1M1, L2M2, L3M3);
                         ValueType temp2 = wigner3jSymbol(L1M0, L2M0, L3M0);
                         */
+/*
                         ValueType temp1 = gsl_sf_coupling_3j(L1M1.l.i, L2M2.l.i, L3M3.l.i, L1M1.m.i, L2M2.m.i, L3M3.m.i);
                         ValueType temp2 = gsl_sf_coupling_3j(L1M0.l.i, L2M0.l.i, L3M0.l.i, 0, 0, 0);
                         
@@ -257,7 +259,7 @@ void Multipole::Gaunt::Matrix::computeL(Spherical::Index L1, std::vector<contain
 
     LEAVING
 }
-
+*/
 /*
 Multipole::Gaunt::ValueType Multipole::Gaunt::Matrix::wigner3jSymbol(Spherical::IndexPair& L1M1, Spherical::IndexPair& L2M2, Spherical::IndexPair& L3M3)
 {
@@ -713,7 +715,7 @@ Multipole::Gaunt::ValueType Multipole::Gaunt::Matrix::factorial(int i)
     }
 }
 */
-
+/*
 std::ostream& Multipole::Gaunt::operator<<(std::ostream& os, const Matrix& mat)
 {
     using namespace Gripper;
@@ -736,3 +738,5 @@ namespace Gripper
 {
     EXPORT Multipole::Gaunt::Matrix gaunt;
 } // namespace Gripper
+
+*/

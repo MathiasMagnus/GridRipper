@@ -1,4 +1,4 @@
-#include <STL_Example1_GauntDistribution.hpp>
+#include <STL_Example2_GauntContraction.hpp>
 
 int main(int argc, char* argv[])
 {
@@ -19,6 +19,8 @@ int main(int argc, char* argv[])
     // Declare variables
     time_point start, end;
     extent ext(index{0, 0, 0}, index{L_max, L_max, S_max});
+    index ai{ 3, -3, 1 }, bi{ 3, 3, -1 }, ci{ 0, 0, 0 };
+    coeff_vector a(ext), b(ext), c;
     gaunt_matrix gaunt;
 
     // Initialize Gaunt-matrix
@@ -31,12 +33,19 @@ int main(int argc, char* argv[])
     std::cout << "Count of non-zero elements = " << gaunt.size() << std::endl;
     std::cout << "Calculation took " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << " sec\n" << std::endl;
 
-    for (index i = { 0, 0, 0 }; ext.contains(i); ++i)
-    {
-        auto marker = gaunt.get_marker(i);
+    // Initialize coefficient vectors
+    a.at(ai) = 1;
+    b.at(bi) = 1;
+        
+    // Contract Gaunt-matrix with an expansion of a field
+    std::cout << "Contracting gaunt matrix with a" << ai << " = " << 1 << " and b" << bi << " = " << 1 << std::endl;
+    start = std::chrono::high_resolution_clock::now();
 
-        std::cout << i << " " << std::distance(marker.first, marker.second) << std::endl;
-    }
+    c = SpinWeightedGaunt::contract(gaunt, a, b);
+
+    end = std::chrono::high_resolution_clock::now();
+    std::cout << "Result at c" << ci << " = " << c.at(ci) << std::endl;
+    std::cout << "Contraction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms\n" << std::endl;
     
 	return EXIT_SUCCESS;
 }

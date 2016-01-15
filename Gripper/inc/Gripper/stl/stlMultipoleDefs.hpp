@@ -1,5 +1,4 @@
-#ifndef STLMULTIPOLEDEFS_HPP
-#define STLMULTIPOLEDEFS_HPP
+#pragma once
 
 // Gripper includes
 #include <Gripper/MultipoleDefs.hpp> // Forward declaration of Multipole types
@@ -12,7 +11,7 @@
 namespace Multipole
 {
     namespace stl
-    {
+    {/*
         namespace Gaunt
         {
             class Index;
@@ -46,9 +45,9 @@ namespace Multipole
             template <typename VT> class Vector;
 
         } // namespace Spherical
-
+        */
         namespace Expansion
-        {
+        {/*
             class Index;
 
             class Extent;
@@ -63,7 +62,7 @@ namespace Multipole
 
             template <typename VT> class Traits;
             template <typename ET, typename VT> class Expression;
-            template <typename VT> class Field;
+            template <typename VT> class Field;*/
             /*
             enum DiffMethod
             {
@@ -83,5 +82,3 @@ namespace Multipole
     } // namespace stl
 
 } // namespace Multipole
-
-#endif // STLMULTIPOLEDEFS_HPP

@@ -22,7 +22,7 @@ option (GR_USE_AMP "Build the C++AMP compute back-end" OFF)
 option (GR_BUILD_CLUSTER_SUPPORT "Build with cluster support" OFF)
 option (GR_BUILD_VISUALIZER_SUPPORT "Build with visuailzing support" OFF)
 option (GR_BUILD_EXAMPLES "Build examples" ON)
-option (GR_BUILD_TESTS "Build unit tests" ON)
+option (GR_BUILD_TESTS "Build unit tests" OFF)
 
 #
 # Set platform-independent variables
@@ -120,12 +120,6 @@ option (GR_BUILD_TESTS "Build unit tests" ON)
     set (CLANG_CXX_COMPILER_FLAGS "${CLANG_CXX_COMPILER_FLAGS} -std=c++11")
     # Enable Clang's own STL implementation
     set (CLANG_CXX_COMPILER_FLAGS "${CLANG_CXX_COMPILER_FLAGS} -stdlib=libc++")
-    # Disable picking up system default C++ STL headers
-    set (CLANG_CXX_COMPILER_FLAGS "${CLANG_CXX_COMPILER_FLAGS} -nostdinc++")
-    # Disable picking up system default C++ STL headers
-    set (CLANG_CXX_COMPILER_FLAGS "${CLANG_CXX_COMPILER_FLAGS} -I/opt/LLVM/Clang/3.6/include")
-    # Disable picking up system default C++ STL headers
-    set (CLANG_CXX_COMPILER_FLAGS "${CLANG_CXX_COMPILER_FLAGS} -L/opt/LLVM/Clang/3.6/lib")
     
     set(CMAKE_CXX_FLAGS ${CLANG_CXX_COMPILER_FLAGS})
   

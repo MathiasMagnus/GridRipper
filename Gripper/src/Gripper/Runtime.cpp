@@ -1,5 +1,5 @@
 #include <Gripper/Runtime.hpp>
-
+/*
 namespace Gripper
 {
     namespace Private
@@ -15,7 +15,7 @@ namespace Gripper
 Gripper::Runtime::Runtime() :
     m_base_parser(new AnyOption()),
     m_config_file("config.cfg"),
-    m_L_max(/*15*/3),
+    m_L_max(3),
     m_precision(ArithmeticPrecision::DoublePrecision)
 {
     m_base_parser->addUsage("");
@@ -186,3 +186,4 @@ Multipole::Spherical::Index Gripper::getL() { return Private::g_runtime.getL(); 
 
 
 Gripper::ArithmeticPrecision Gripper::getPrecision() { return Private::g_runtime.getPrecision(); }
+*/

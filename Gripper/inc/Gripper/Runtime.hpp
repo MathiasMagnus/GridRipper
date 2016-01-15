@@ -1,6 +1,5 @@
-#ifndef RUNTIMEBASE_HPP
-#define RUNTIMEBASE_HPP
-
+#pragma once
+/*
 // Reading settings from CMake build configuration
 #include <Gripper/Gripper_Config.hpp>
 #include <Gripper/Gripper_Export.hpp>
@@ -85,5 +84,4 @@ namespace Gripper
     EXPORT ArithmeticPrecision getPrecision();
 
 } // namespace Gripper
-
-#endif // RUNTIMEBASE_HPP
+*/
