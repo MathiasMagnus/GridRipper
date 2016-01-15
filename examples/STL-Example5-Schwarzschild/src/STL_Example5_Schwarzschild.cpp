@@ -49,10 +49,10 @@ int main(int argc, char* argv[])
     rk4.setLHS(state_vector(K_var, k_var));
     rk4.setEquationSystem([&](const state_vector& state)
     {
-        return state_vector();
+        return state_vector(
+            /*N_kalap * (kappa - one_per_two * state.get<K>()) * */K_kalap,
+            N_kalap * K_kalap/* * state.get<k>()*/);
     });
-
-    std::cout << "Done." << std::endl;
 
     return EXIT_SUCCESS;
 }

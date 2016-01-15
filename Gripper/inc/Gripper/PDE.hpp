@@ -56,7 +56,7 @@ namespace PDE
     {
     public:
 
-        Scale(const float alpha, const Expression<E>& v) : _alpha(alpha), _v(v) { /*ASSERT MISSING*/ }
+        Scale(const float alpha, const Expression<E>& v) : _alpha(alpha), _v(v) {}
 
         // StateVector interface
 
