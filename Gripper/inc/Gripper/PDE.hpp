@@ -17,19 +17,19 @@
 
 namespace PDE
 {
-    template <typename T>
+    template <typename E>
     class Expression
     {
     public:
 
         // StateVector interface
 
-        template <int N> auto get() const { return static_cast<const T&>(*this).template get<N>(); }
+        template <int N> auto get() const { return static_cast<const E&>(*this).template get<N>(); }
 
         // Expression interface
 
-        operator T&()             { return static_cast<T&>(*this); }
-        operator T const&() const { return static_cast<const T&>(*this); }
+        operator E&()             { return static_cast<E&>(*this); }
+        operator E const&() const { return static_cast<const E&>(*this); }
     };
 
 
@@ -51,12 +51,12 @@ namespace PDE
     };
 
 
-    template <typename E>
-    class Scale : public Expression<Scale<E>>
+    template <typename T, typename E>
+    class Scale : public Expression<Scale<T, E>>
     {
     public:
 
-        Scale(const float alpha, const Expression<E>& v) : _alpha(alpha), _v(v) {}
+        Scale(const T& alpha, const Expression<E>& v) : _alpha(alpha), _v(v) {}
 
         // StateVector interface
 
@@ -64,7 +64,7 @@ namespace PDE
 
     private:
 
-        float _alpha;
+        T _alpha;
         const E& _v;
     };
 
@@ -135,8 +135,11 @@ namespace PDE
 
     namespace RK4
     {
-        template <typename... States>
-        class Solver
+        template <typename T, typename States>
+        class Solver;
+
+        template <typename T, typename... States>
+        class Solver<T, StateVector<States...>>
         {
         public:
 
@@ -151,17 +154,17 @@ namespace PDE
             void setEquationSystem(std::function<StateVector<States...>(const StateVector<States...>&)> evaluate) { m_func = evaluate; }
             std::function<StateVector<States...>(const StateVector<States...>&)> getEquationSystem() { return m_func; }
 
-            float iterate(float dt)
+            T iterate(const T& dt)
             {
                 m_k.at(k1) = m_func(m_lhs);
 
-                m_k.at(k2) = m_func(m_lhs + 0.5f * dt * m_k.at(k1));
+                m_k.at(k2) = m_func(m_lhs + static_cast<T>(0.5) * dt * m_k.at(k1));
                 
-                m_k.at(k3) = m_func(m_lhs + 0.5f * dt * m_k.at(k2));
+                m_k.at(k3) = m_func(m_lhs + static_cast<T>(0.5) * dt * m_k.at(k2));
 
-                m_k.at(k4) = m_func(m_lhs + 1.0f * dt * m_k.at(k3));
+                m_k.at(k4) = m_func(m_lhs + static_cast<T>(1.0) * dt * m_k.at(k3));
 
-                m_lhs = m_lhs + (dt / 6.0f)*(m_k.at(k1) + 2.0f * m_k.at(k2) + 2.0f * m_k.at(k3) + m_k.at(k4));
+                m_lhs = m_lhs + (dt / static_cast<T>(6.0))*(m_k.at(k1) + static_cast<T>(2.0) * m_k.at(k2) + static_cast<T>(2.0) * m_k.at(k3) + m_k.at(k4));
 
                 return dt;
             }
@@ -190,5 +193,5 @@ namespace PDE
 // PDE::StateVector non-member operators //
 ///////////////////////////////////////////
 
-template <typename E> auto operator*(const float alpha, const PDE::Expression<E>& v) { return PDE::Scale<E>(alpha, v); }
+template <typename T, typename E> auto operator*(const T& alpha, const PDE::Expression<E>& v) { return PDE::Scale<T, E>(alpha, v); }
 template <typename E1, typename E2> auto operator+(const PDE::Expression<E1>& u, const PDE::Expression<E2>& v) { return PDE::Sum<E1, E2>(u, v); }

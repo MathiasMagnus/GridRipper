@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
     using coeff_vector = SpinWeightedSpherical::Vector<L_max, S_max, Parity::Even, integral, real>;
     using time_point = std::chrono::high_resolution_clock::time_point;
     using state_vector = PDE::StateVector<real, coeff_vector, coeff_vector>;
-    using solver = PDE::RK4::Solver<real, coeff_vector, coeff_vector>;
+    using solver = PDE::RK4::Solver<real, state_vector>;
 
     // Declare variables
     time_point start, end;

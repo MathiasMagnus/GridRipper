@@ -8,10 +8,10 @@
 #include <gsl/gsl_sf_legendre.h>
 #include <gsl/gsl_sf.h>
 
-//#include <Gripper/stl/stlMultipoleTypes.hpp>
 #include <Gripper/stl/stlSphericalIndex.hpp>
 #include <Gripper/stl/stlSphericalExtent.hpp>
 #include <Gripper/stl/stlSphericalVector.hpp>
+#include <Gripper/stl/stlRadialVector.hpp>
 
 // Standard C++ includes
 #include <map>                      // Needed for internal storage
@@ -295,7 +295,7 @@ namespace Multipole
                 Contraction(const SpinWeightedSpherical::Expression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_type::value_type, typename E1::value_type>& u,
                             const SpinWeightedSpherical::Expression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& v,
                             const G3& g) :
-                    _u(u), _v(v), _g(g) { assert(u.extent() == v.extent() && (v.extent() == extent_type({ 0, 0, -(G3::s_max) }, { G3::l_max, G3::l_max, G3::s_max }))); };
+                    _u(u), _v(v), _g(g) { assert(u.extent() == v.extent() && (v.extent() == extent_type({ 0, 0, 0 }, { G3::l_max, G3::l_max, G3::s_max }))); };
 
                 // STL interface
 
@@ -339,9 +339,36 @@ namespace Multipole
             template <typename E1,
                 typename E2,
                 typename G3,
+                std::size_t L = E1::l_max,
+                std::size_t S = E1::s_max,
+                Parity P = E1::parity,
+                typename I = typename E1::index_type,
+                //typename V = typename E1::value_type,
                 typename IT = decltype(std::declval<typename E1::index_type::value_type>() + std::declval<typename E2::index_type::value_type>() + std::declval<typename G3::index_type::value_type>()),
                 typename VT = decltype(std::declval<typename E1::value_type>() * std::declval<typename E2::value_type>() * std::declval<typename G3::mapped_type>())>
-                auto contract(const G3& gaunt, const E1& lhs, const E2& rhs) { return Contraction<E1, E2, G3>(lhs, rhs, gaunt); };
+                auto contract(const G3& gaunt,
+                              const SpinWeightedSpherical::Expression<E1, L, S, P, I, typename E1::value_type>& lhs,
+                              const SpinWeightedSpherical::Expression<E2, L, S, P, I, typename E2::value_type>& rhs)
+            {
+                return Contraction<E1, E2, G3>(lhs, rhs, gaunt);
+            };
+            
+            template <typename RE1,
+                typename RE2,
+                typename G3,
+                typename D,
+                typename I,
+                typename VT1,
+                typename VT2>
+                auto contract(const G3& gaunt,
+                              const Multipole::stl::Radial::Expression<RE1, D, I, VT1>& lhs,
+                              const Multipole::stl::Radial::Expression<RE2, D, I, VT2>& rhs)
+            {
+                return Radial::zip(lhs, rhs, [&](auto&& l, auto&& r) { return Contraction<typename VT1::expression_type, typename VT2::expression_type, G3>(l, r, gaunt); });
+            };
+            
         } // namespace SpinWeightedGaunt
-    }
-}
+
+    } // namespace stl
+
+} // namespace Multipole

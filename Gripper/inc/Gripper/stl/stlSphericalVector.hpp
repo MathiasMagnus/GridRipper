@@ -12,6 +12,7 @@
 // Standard C++ includes
 #include <vector>                   // Needed for internal storage and providing results
 #include <future>                   // Needed for guided parallel processing
+#include <array>                    // Needed for guided parallel processing
 #include <utility>                  // Needed for std::pair, std::declval
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -23,8 +24,6 @@ namespace Multipole
     {
         namespace Spherical
         {
-            template <typename E> static auto l_parity(const typename E::extent_type&); // FIXME: this forward declaration should not really exist
-
             template <std::size_t L_Max, Parity P, typename IT, typename VT>
             class VectorTraits
             {
@@ -63,6 +62,7 @@ namespace Multipole
 
                 // Common typedefs
                 
+                using expression_type = ET;
                 using typename VectorTraits<L_Max, P, IT, VT>::value_type;
 
                 // STL typedefs
@@ -97,6 +97,7 @@ namespace Multipole
                 operator ET const&() const { return static_cast<const ET&>(*this); }
             };
 
+            template <typename E> auto l_parity(const typename E::extent_type&); // FIXME: this forward declaration should not really exist
 
             template <std::size_t L_Max, Parity P, typename IT, typename VT>
             class Vector : public Expression<Vector<L_Max, P, IT, VT>, L_Max, P, IT, VT>
@@ -407,14 +408,24 @@ namespace Multipole
             template <Parity P, typename E>
             auto parity(const Expression<E, E::l_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Par<E, P>(u); }
 
+            namespace impl
+            {
+                template <typename E, typename F>
+                auto l_parity(const typename E::extent_type& ext, const F& f) { return Func<E, F>(ext, f); }
+            }
+
             template <typename E>
-            auto l_parity(const typename E::extent_type& ext) { return Func<E>(ext, [](const typename E::index_type& i) { return i.l % 2 ? -1 : 1; }); }
+            auto l_parity(const typename E::extent_type& ext) {
+                return impl::l_parity(ext, [](const typename E::index_type& i) { return i.l % 2 ? -1 : 1; });
+            }
 
         } // namespace Spherical
 
         namespace SpinWeightedSpherical
         {
-            template <typename E> static auto l_parity(const typename E::extent_type&); // FIXME: this forward declaration should not really exist
+            template <typename E> auto l_parity(const typename E::extent_type&); // FIXME: this forward declaration should not really exist
+
+            
 
             template <std::size_t L_Max, std::size_t S_Max, Parity P, typename IT, typename VT>
             class VectorTraits
@@ -455,6 +466,7 @@ namespace Multipole
 
                 // Common typedefs
 
+                using expression_type = ET;
                 using typename VectorTraits<L_Max, S_Max, P, IT, VT>::value_type;
  
                 // STL typedefs
@@ -487,149 +499,6 @@ namespace Multipole
 
                 operator ET&() { return static_cast<ET&>(*this); }
                 operator ET const&() const { return static_cast<const ET&>(*this); }
-            };
-
-
-            template <std::size_t L_Max, std::size_t S_Max, Parity P, typename IT, typename VT>
-            class Vector : public Expression<Vector<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>
-            {
-            public:
-
-                // Common typedefs
-
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::value_type;
-
-                // STL typedefs
-
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::container_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::size_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::iterator_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::const_iterator_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::reverse_iterator_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::const_reverse_iterator_type;
-
-                // Lattice typedefs
-
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::extent_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::index_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::index_internal_type;
-
-                template <typename E>
-                static auto l_parity(const typename E::extent_type& ext) { return Multipole::stl::SpinWeightedSpherical::l_parity(ext); }
-
-                // Common interface
-
-                Vector() = default;
-                Vector(const Vector& in) = default;
-                Vector(Vector&& in) = default;
-                ~Vector() = default;
-
-                Vector& operator=(const Vector&) = default;
-                Vector& operator=(Vector&&) = default;
-
-                // STL interface
-
-                iterator_type begin() { return m_data.begin(); }
-                const_iterator_type begin() const { return m_data.begin(); }
-                const_iterator_type cbegin() const { return m_data.cbegin(); }
-
-                iterator_type end() { return m_data.end(); }
-                const_iterator_type end() const { return m_data.end(); }
-                const_iterator_type cend() const { return m_data.cend(); }
-
-                reverse_iterator_type rbegin() { return m_data.rbegin(); }
-                const_reverse_iterator_type rbegin() const { return m_data.rbegin(); }
-                const_reverse_iterator_type crbegin() const { return m_data.crbegin(); }
-
-                reverse_iterator_type rend() { return m_data.rend(); }
-                const_reverse_iterator_type rend() const { return m_data.rend(); }
-                const_reverse_iterator_type crend() const { return m_data.crend(); }
-
-                value_type& at(size_type pos) { return m_data.at(pos); }                        // Returns specified element of the Vector with bounds checking
-                const value_type& at(size_type pos) const { return m_data.at(pos); }            // Returns specified const element of the Vector with bounds checking
-                value_type& operator[](size_type pos) { return m_data[pos]; }                   // Returns specified element of the Vector
-                const value_type& operator[](size_type pos) const { return m_data[pos]; }       // Returns specified const element of the Vector
-
-                value_type* data() { return m_data.data(); }                                    // Returns pointer to the underlying memory
-                const value_type* data() const { return m_data.data(); }                        // Returns pointer to the underlying memory
-
-                size_type size() const { return m_data.size(); }                                // Returns the number of elements inside the Vector
-                void clear() { m_data.clear(); }                                                // Clear the contents of the Vector
-
-                // Lattice interface
-
-                Vector(const extent_type ext) : m_extent(ext) // TODO: when a proper indexing function has been devised, replace loop with initializer
-                {
-                    std::size_t counter = 0;
-
-                    for (index_type i = m_extent.initial(); m_extent.contains(i); ++i)
-                        ++counter;
-
-                    m_data.resize(counter);
-                }
-
-                value_type& at(const index_type& pos)
-                {
-                    if (!m_extent.contains(pos)) assert("SpinWeightedSpherical::Vector: index out of range");
-
-                    return m_data.at(convert(pos));
-                }
-                const value_type& at(const index_type& pos) const
-                {
-                    if (!m_extent.contains(pos)) assert("SpinWeightedSpherical::Vector: index out of range");
-
-                    return m_data.at(convert(pos));
-                }
-
-                extent_type extent() const { return m_extent; }
-
-                // Exrpession interface
-
-                template <typename VecExpr, typename IndexType, typename ValueType>
-                Vector(Expression<VecExpr, L_Max, S_Max, P, IndexType, ValueType> const& expr) : Vector()
-                {
-                    // Extract type from encapsulating expression
-                    VecExpr const& v = expr;
-
-                    // Resize if needed
-                    if (m_extent != v.extent())
-                    {
-                        m_extent = v.extent();
-                        m_data.resize(v.size());
-                    }
-
-                    for (index_type i = m_extent.initial(); m_extent.contains(i); ++i)
-                        this->at(i) = v.at(i);
-                }
-
-                index_type convert(const size_type& i) const 
-                {
-                    static_assert(false, "This function currently does not work");
-
-                    IT i_corr = static_cast<IT>(i / (2 * m_extent.final().s + 1)); // truncation on division is intentional (omit std::floor and double up-cast)
-                    IT l = static_cast<IT>(std::round((-1. + std::sqrt(1. + 4 * i_corr)) / 2.));
-                    IT m = i_corr - l*(l + 1);
-                    IT s = (i % (2 * m_extent().final.s + 1)) - m_extent.final().s;
-
-                    return index_type{ l, m, s };
-                }
-
-            private:
-
-                size_type convert(const index_type& i) const
-                {
-                    // FIXME: I am a terribly slow indexing funcion work-around!!!
-
-                    std::size_t counter = 0;
-
-                    for (index_type I = m_extent.initial(); I != i; ++I)
-                        ++counter;
-
-                    return counter;
-                }
-
-                extent_type m_extent;
-                container_type m_data;
             };
 
 
@@ -933,14 +802,174 @@ namespace Multipole
             template <Parity P, typename E>
             auto parity(const Expression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Par<E, P>(u); }
 
+            namespace impl
+            {
+                template <typename E, typename F>
+                auto l_parity(const typename E::extent_type& ext, const F& f) { return Func<E, F>(ext, f); }
+            }
+
             template <typename E>
-            auto l_parity(const typename E::extent_type& ext) { return Func<E>(ext, [](const typename E::index_type& i) { return i.l % 2 ? -1 : 1; }); }
+            auto l_parity(const typename E::extent_type& ext) { return impl::l_parity<E>(ext, [](const typename E::index_type& i) { return i.l % 2 ? -1 : 1; }); }
             
             template <typename E>
             auto eth(const Expression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Eth<E, Spin::Down>(u); }
 
             template <typename E>
             auto eth_bar(const Expression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Eth<E, Spin::Up>(u); }
+
+
+            template <std::size_t L_Max, std::size_t S_Max, Parity P, typename IT, typename VT>
+            class Vector : public Expression<Vector<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>
+            {
+            public:
+
+                // Common typedefs
+;
+                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::value_type;
+
+                // STL typedefs
+
+                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::container_type;
+                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::size_type;
+                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::iterator_type;
+                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::const_iterator_type;
+                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::reverse_iterator_type;
+                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::const_reverse_iterator_type;
+
+                // Lattice typedefs
+
+                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::extent_type;
+                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::index_type;
+                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::index_internal_type;
+
+                static auto l_parity(const extent_type& ext) { return Multipole::stl::SpinWeightedSpherical::l_parity<Expression<Vector<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>>(ext); }
+
+                // Common interface
+
+                Vector() = default;
+                Vector(const Vector& in) = default;
+                Vector(Vector&& in) = default;
+                ~Vector() = default;
+
+                Vector& operator=(const Vector&) = default;
+                Vector& operator=(Vector&&) = default;
+
+                // STL interface
+
+                iterator_type begin() { return m_data.begin(); }
+                const_iterator_type begin() const { return m_data.begin(); }
+                const_iterator_type cbegin() const { return m_data.cbegin(); }
+
+                iterator_type end() { return m_data.end(); }
+                const_iterator_type end() const { return m_data.end(); }
+                const_iterator_type cend() const { return m_data.cend(); }
+
+                reverse_iterator_type rbegin() { return m_data.rbegin(); }
+                const_reverse_iterator_type rbegin() const { return m_data.rbegin(); }
+                const_reverse_iterator_type crbegin() const { return m_data.crbegin(); }
+
+                reverse_iterator_type rend() { return m_data.rend(); }
+                const_reverse_iterator_type rend() const { return m_data.rend(); }
+                const_reverse_iterator_type crend() const { return m_data.crend(); }
+
+                value_type& at(size_type pos) { return m_data.at(pos); }                        // Returns specified element of the Vector with bounds checking
+                const value_type& at(size_type pos) const { return m_data.at(pos); }            // Returns specified const element of the Vector with bounds checking
+                value_type& operator[](size_type pos) { return m_data[pos]; }                   // Returns specified element of the Vector
+                const value_type& operator[](size_type pos) const { return m_data[pos]; }       // Returns specified const element of the Vector
+
+                value_type* data() { return m_data.data(); }                                    // Returns pointer to the underlying memory
+                const value_type* data() const { return m_data.data(); }                        // Returns pointer to the underlying memory
+
+                size_type size() const { return m_data.size(); }                                // Returns the number of elements inside the Vector
+                void clear() { m_data.clear(); }                                                // Clear the contents of the Vector
+
+                // Lattice interface
+
+                Vector(const extent_type ext) : m_extent(ext) // TODO: when a proper indexing function has been devised, replace loop with initializer
+                {
+                    std::size_t counter = 0;
+
+                    for (index_type i = m_extent.initial(); m_extent.contains(i); ++i)
+                        ++counter;
+
+                    m_data.resize(counter);
+                }
+
+                value_type& at(const index_type& pos)
+                {
+                    if (!m_extent.contains(pos)) assert("SpinWeightedSpherical::Vector: index out of range");
+
+                    return m_data.at(convert(pos));
+                }
+                const value_type& at(const index_type& pos) const
+                {
+                    if (!m_extent.contains(pos)) assert("SpinWeightedSpherical::Vector: index out of range");
+
+                    return m_data.at(convert(pos));
+                }
+
+                extent_type extent() const { return m_extent; }
+
+                // Exrpession interface
+
+                template <typename VecExpr, typename IndexType, typename ValueType>
+                Vector(Expression<VecExpr, L_Max, S_Max, P, IndexType, ValueType> const& expr) : Vector()
+                {
+                    // Extract type from encapsulating expression
+                    VecExpr const& v = expr;
+
+                    // Resize if needed
+                    if (m_extent != v.extent())
+                    {
+                        m_extent = v.extent();
+                        m_data.resize(v.size());
+                    }
+
+                    // Serial evaluator
+                    for (index_type i = m_extent.initial(); m_extent.contains(i); ++i)
+                        this->at(i) = v.at(i);
+                    /*
+                    // Parallel evaluator
+                    std::size_t count = 0;
+                    std::array<std::future<void>, std::thread::hardware_concurrency()> futures;
+                    std::array<extent_type, std::thread::hardware_concurrency()> extents;
+
+                    for (index_type i = m_extent.initial(); m_extent.contains(i); ++i) ++count;
+
+                    for (auto I = 0; I < extents.size(); ++I)
+                        for (index_type i = m_extent.initial() + i * (count / extents.size()); ++i)
+                            */
+                }
+
+                index_type convert(const size_type& i) const
+                {
+                    static_assert(false, "This function currently does not work");
+
+                    IT i_corr = static_cast<IT>(i / (2 * m_extent.final().s + 1)); // truncation on division is intentional (omit std::floor and double up-cast)
+                    IT l = static_cast<IT>(std::round((-1. + std::sqrt(1. + 4 * i_corr)) / 2.));
+                    IT m = i_corr - l*(l + 1);
+                    IT s = (i % (2 * m_extent().final.s + 1)) - m_extent.final().s;
+
+                    return index_type{ l, m, s };
+                }
+
+            private:
+
+                size_type convert(const index_type& i) const
+                {
+                    // FIXME: I am a terribly slow indexing funcion work-around!!!
+
+                    std::size_t counter = 0;
+
+                    for (index_type I = m_extent.initial(); I != i; ++I)
+                        ++counter;
+
+                    return counter;
+                }
+
+                extent_type m_extent;
+                container_type m_data;
+            };
             
         } // namespace SpinWeightedSpherical
 
@@ -976,5 +1005,5 @@ template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, ty
 template <typename E1, typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SpinWeightedSpherical::Expression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SpinWeightedSpherical::Expression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SpinWeightedSpherical::zip(u, v, [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
 template <typename E1, typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SpinWeightedSpherical::Expression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SpinWeightedSpherical::Expression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SpinWeightedSpherical::zip(u, v, [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
 
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T/*, typename Scalar*/> auto operator*(const T& alpha, const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [=](auto&& val) { return alpha * val; }); }
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T/*, typename Scalar*/> auto operator*(const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v, const T& alpha) { return Multipole::stl::SpinWeightedSpherical::map(v, [=](auto&& val) { return alpha * val; }); }
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Scalar& alpha, const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [=](auto&& val) { return alpha * val; }); }
+//template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v, const Scalar& alpha) { return Multipole::stl::SpinWeightedSpherical::map(v, [=](auto&& val) { return alpha * val; }); }
