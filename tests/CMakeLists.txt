@@ -13,16 +13,11 @@ set     (Tests_VERSION_MINOR 5)
 set     (Tests_VERSION_PATCH 0)
 
 # Process tests
-add_subdirectory (Base-Test1-Runtime)
 
 if (USE_STL)
-	add_subdirectory (STL-Test1-Runtime)
-	add_subdirectory (STL-Test2-Arithmetics)
-	add_subdirectory (STL-Test3-RK4)
-	add_subdirectory (STL-Test4-Plotter)
+	add_subdirectory (STL-Test1-RK4)
+	add_subdirectory (STL-Test2-Arithmetics-Simple)
+    add_subdirectory (STL-Test3-Arithmetics-Compound)
+    add_subdirectory (STL-Test4-Arithmetics-SW-Simple)
+    add_subdirectory (STL-Test5-Arithmetics-SW-Compound)
 endif (USE_STL)
-
-if (USE_OPENCL)
-	add_subdirectory (TestCLRuntime)
-	add_subdirectory (TestCLArithmetics)
-endif (USE_OPENCL)
