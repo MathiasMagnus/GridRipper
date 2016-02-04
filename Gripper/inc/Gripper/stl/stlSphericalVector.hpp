@@ -296,7 +296,10 @@ namespace Multipole
                 using typename VectorTraits<E::l_max, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::value_type)>::type>::index_type;
                 using typename VectorTraits<E::l_max, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::value_type)>::type>::index_internal_type;
 
-                Map(Expression<E, E::l_max, E::parity, typename E::index_internal_type, typename E::value_type> const& u, const F& f) : m_u(u), m_f(f) {}
+                Map(Expression<E, E::l_max, E::parity, typename E::index_internal_type, typename E::value_type> const& u, const F& f) : m_u(u), m_f(f)
+                {
+                    printf("");
+                }
 
                 // STL interface
 
@@ -598,7 +601,10 @@ namespace Multipole
                 using typename VectorTraits<E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::value_type)>::type>::index_type;
                 using typename VectorTraits<E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::value_type)>::type>::index_internal_type;
 
-                Map(Expression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type> const& u, const F& f) : _u(u), _f(f) {}
+                Map(Expression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type> const& u, const F& f) : _u(u), _f(f)
+                {
+                    printf("");
+                }
 
                 // STL interface
 
@@ -715,6 +721,12 @@ namespace Multipole
 
                 template <> struct SpinStepper<Spin::Up>
                 {
+                    template <typename VT> struct realify;
+                    template <> struct realify<float> { using type = float; };
+                    template <> struct realify<double> { using type = double; };
+                    template <> struct realify<std::complex<float>> { using type = float; };
+                    template <> struct realify<std::complex<double>> { using type = double; };
+
                     template <typename E>
                     static auto at(const E& e, const typename E::index_type& i)
                     {
@@ -727,8 +739,11 @@ namespace Multipole
                         if (factor_sq <= static_cast<typename E::index_internal_type>(0)) return result;
 
                         auto index = i;
-
-                        result = static_cast<decltype(result)>(std::sqrt(factor_sq) * e.at(++index));
+                        
+                        //
+                        // NOTE: float cast is required due to std::sqrt(Integral) returning double and std::complex<float> not being able to construct from a double.
+                        //
+                        result = static_cast<decltype(result)>(static_cast<typename realify<decltype(result)>::type>(std::sqrt(factor_sq)) * e.at(++index));
 
                         return result;
                     };
@@ -736,6 +751,12 @@ namespace Multipole
 
                 template <> struct SpinStepper<Spin::Down>
                 {
+                    template <typename VT> struct realify;
+                    template <> struct realify<float> { using type = float; };
+                    template <> struct realify<double> { using type = double; };
+                    template <> struct realify<std::complex<float>> { using type = float; };
+                    template <> struct realify<std::complex<double>> { using type = double; };
+
                     template <typename E>
                     static auto at(const E& e, const typename E::index_type& i)
                     {
@@ -749,7 +770,10 @@ namespace Multipole
 
                         auto index = i;
 
-                        result = static_cast<decltype(result)>(-std::sqrt(factor_sq) * e.at(--index));
+                        //
+                        // NOTE: float cast is required due to std::sqrt(Integral) returning double and std::complex<float> not being able to construct from a double
+                        //
+                        result = static_cast<decltype(result)>(-static_cast<typename realify<decltype(result)>::type>(std::sqrt(factor_sq)) * e.at(--index));
 
                         return result;
                     };
@@ -983,8 +1007,9 @@ namespace Multipole
 ////////////////////////////////////////////
 
 // Unary 
-template <typename E, std::size_t L, Multipole::stl::Parity P, typename I, typename T> auto operator+(Multipole::stl::Spherical::Expression<E, L, P, I, T> const& v) { return Multipole::stl::Spherical::map(v, [](auto&& val) { return static_cast<T>(1) * val; }); }
-template <typename E, std::size_t L, Multipole::stl::Parity P, typename I, typename T> auto operator-(Multipole::stl::Spherical::Expression<E, L, P, I, T> const& v) { return Multipole::stl::Spherical::map(v, [](auto&& val) { return static_cast<T>(-1) * val; }); }
+template <typename E, std::size_t L, Multipole::stl::Parity P, typename I, typename T> auto operator+(const Multipole::stl::Spherical::Expression<E, L, P, I, T>& v) { return Multipole::stl::Spherical::map(v, [](auto&& val) { return static_cast<T>(1) * val; }); }
+template <typename E, std::size_t L, Multipole::stl::Parity P, typename I, typename T> auto operator-(const Multipole::stl::Spherical::Expression<E, L, P, I, T>& v) { return Multipole::stl::Spherical::map(v, [](auto&& val) { return static_cast<T>(-1) * val; }); }
+template <typename E, std::size_t L, Multipole::stl::Parity P, typename I, typename T> auto conjugate(const Multipole::stl::Spherical::Expression<E, L, P, I, T>& v) { return Multipole::stl::Spherical::map(v, [](auto&& val) { return std::complex<float>(1, -1) * val; }); }
 
 // Binary
 template <typename E1, typename E2, std::size_t L, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(Multipole::stl::Spherical::Expression<E1, L, P, I1, T1> const& u, Multipole::stl::Spherical::Expression<E2, L, P, I2, T2> const& v) { return Multipole::stl::Spherical::zip(u, v, [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
@@ -998,12 +1023,28 @@ template <typename E, std::size_t L, Multipole::stl::Parity P, typename I, typen
 ////////////////////////////////////////////////////////
 
 // Unary 
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator+(Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T> const& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [](auto&& val) { return static_cast<T>(1) * val; }); }
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator-(Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T> const& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [](auto&& val) { return static_cast<T>(-1) * val; }); }
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator+(const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [](auto&& val) { return static_cast<T>(1) * val; }); }
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator-(const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [](auto&& val) { return static_cast<T>(-1) * val; }); }
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto conjugate(const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [](auto&& val) { return std::conj(val); }); }
 
 // Binary
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Scalar& alpha, const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [=](auto&& val) { return alpha * val; }); }
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v, const Scalar& alpha) { return Multipole::stl::SpinWeightedSpherical::map(v, [=](auto&& val) { return alpha * val; }); }
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator/(const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v, const Scalar& alpha) { return Multipole::stl::SpinWeightedSpherical::map(v, [=](auto&& val) { return val / alpha; }); }
+
 template <typename E1, typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SpinWeightedSpherical::Expression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SpinWeightedSpherical::Expression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SpinWeightedSpherical::zip(u, v, [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
 template <typename E1, typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SpinWeightedSpherical::Expression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SpinWeightedSpherical::Expression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SpinWeightedSpherical::zip(u, v, [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
 
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Scalar& alpha, const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [=](auto&& val) { return alpha * val; }); }
-//template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v, const Scalar& alpha) { return Multipole::stl::SpinWeightedSpherical::map(v, [=](auto&& val) { return alpha * val; }); }
+namespace Multipole
+{
+    namespace stl
+    {
+        namespace SpinWeightedSpherical
+        {
+            template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto real_cast(const Multipole::stl::SpinWeightedSpherical::Expression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [](auto&& val) { return val.real(); }); }
+
+        } // namespace SpinWeightedSpherical
+
+    } // namespace stl
+
+} // namespace Multipole

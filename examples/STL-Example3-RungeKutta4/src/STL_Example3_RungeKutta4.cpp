@@ -27,15 +27,16 @@ int main(int argc, char* argv[])
     coeff_vector c(ext);
     gaunt_matrix gaunt;
     real a, b, dt;
+    std::vector<real> c(100);
     solver rk4;
     std::size_t count;
 
     // Initialize Gaunt-matrix
     std::cout << "Calculating gaunt spin-weighted Gaunt-matrix of L_max = " << static_cast<int>(L_max) << " and S_max = " << static_cast<int>(S_max) << std::endl;
     start = std::chrono::high_resolution_clock::now();
-
+    
     gaunt.calculate();
-
+    
     end = std::chrono::high_resolution_clock::now();
     std::cout << "Count of non-zero elements = " << gaunt.size() << std::endl;
     std::cout << "Calculation took " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << " sec\n" << std::endl;

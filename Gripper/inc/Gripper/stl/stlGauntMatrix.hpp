@@ -292,10 +292,21 @@ namespace Multipole
                 using typename SpinWeightedSpherical::VectorTraits<E1::l_max, E1::s_max, P, IT, VT>::index_type;
                 using typename SpinWeightedSpherical::VectorTraits<E1::l_max, E1::s_max, P, IT, VT>::index_internal_type;
 
+                Contraction() = delete;
+                Contraction(const Contraction&) = default;
+                Contraction(Contraction&&) = default;
+                ~Contraction() = default;
+
+                Contraction& operator=(const Contraction&) = default;
+                Contraction& operator=(Contraction&&) = default;
+
                 Contraction(const SpinWeightedSpherical::Expression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_type::value_type, typename E1::value_type>& u,
                             const SpinWeightedSpherical::Expression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& v,
                             const G3& g) :
-                    _u(u), _v(v), _g(g) { assert(u.extent() == v.extent() && (v.extent() == extent_type({ 0, 0, 0 }, { G3::l_max, G3::l_max, G3::s_max }))); };
+                    _u(u), _v(v), _g(g)
+                {
+                    assert(u.extent() == v.extent() && (v.extent() == extent_type({ 0, 0, 0 }, { G3::l_max, G3::l_max, G3::s_max })));
+                };
 
                 // STL interface
 
@@ -323,7 +334,85 @@ namespace Multipole
                 const E2& _v;
                 const G3& _g;
             };
-            
+
+            /*
+            template <typename E1,
+                typename E2,
+                typename G3,
+                typename PT,
+                Parity P = static_cast<Parity>(E1::parity * E2::parity),
+                typename IT = decltype(std::declval<typename E1::index_type::value_type>() + std::declval<typename E2::index_type::value_type>() + std::declval<typename G3::index_type::value_type>()),
+                typename VT = decltype(std::declval<typename E1::value_type>() * std::declval<typename E2::value_type>() * std::declval<typename G3::mapped_type>()),
+                typename TT = SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, P, typename E2::index_type::value_type, typename E2::value_type >>
+            class Neumann : public SpinWeightedSpherical::Expression<Neumann<E1, E2, G3, PT>, E1::l_max, E1::s_max, P, IT, VT>
+            {
+            public:
+
+                // Common typedefs
+
+                using value_type = VT;
+
+                // STL typedefs
+
+                using typename SpinWeightedSpherical::VectorTraits<E1::l_max, E1::s_max, P, IT, VT>::size_type;
+
+                // Lattice typedefs
+
+                using typename SpinWeightedSpherical::VectorTraits<E1::l_max, E1::s_max, P, IT, VT>::extent_type;
+                using typename SpinWeightedSpherical::VectorTraits<E1::l_max, E1::s_max, P, IT, VT>::index_type;
+                using typename SpinWeightedSpherical::VectorTraits<E1::l_max, E1::s_max, P, IT, VT>::index_internal_type;
+
+                Neumann(const SpinWeightedSpherical::Expression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_type::value_type, typename E1::value_type>& u,
+                        const SpinWeightedSpherical::Expression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& v,
+                        const G3& g,
+                        const PT& percentile) :
+                    _u(u), _v(v), _g(g), _sum()
+                {
+                    assert(u.extent() == v.extent() && (v.extent() == extent_type({ 0, 0, 0 }, { G3::l_max, G3::l_max, G3::s_max })));
+
+                    PT actual = static_cast<PT>(1.0);
+
+                    std::vector<TT> series;
+
+                    for (std::size_t count = 1; actual > percentile; ++count)
+                    {
+                        series.push_back(Contraction<E2, E2, G3>(series.at(count), v, g));
+
+                        PT max_dev = static_cast<PT>(1.0);
+                        
+                        for (typename TT::index_type i = series.at(count).extent().initial(); series.at(count).extent().contains(i); ++i)
+                        {
+                            auto act_dev = std::abs(series.at(count - 1).at(i) - series.at(count).at(i) / series.at(count - 1).at(i));
+                            
+                            max_dev = std::max(max_dev, act_dev);
+                        }
+
+                        actual = max_dev; // The largest relative pair-wise change in coefficients
+                    }
+
+                    std::size_t count = 0;
+                    _sum = std::accumulate(series.cbegin(), series.cend(), _sum, [&](const TT& sum, const TT& coeff) { return sum + (count++ % 2 ? -coeff : coeff); });
+                };
+
+                // STL interface
+
+                size_type   size()                  const { return _v.size(); }
+                value_type  operator[](size_type i) const { return this->at(index_type::convert(i)); }
+                value_type  at(size_type i)         const { return this->at(index_type::convert(i)); }
+
+                // Lattice interface
+
+                extent_type extent()                const { return _v.extent(); }
+                value_type  at(index_type i)        const { return Contraction<E1, E2, G3>(_u, _sum, _g).at(i); }
+
+            private:
+
+                const E1& _u;
+                const E2& _v;
+                const G3& _g;
+                TT _sum;
+            };
+            */
         } // namespace SpinWeightedGaunt
 
     } // namespace stl
@@ -343,7 +432,6 @@ namespace Multipole
                 std::size_t S = E1::s_max,
                 Parity P = E1::parity,
                 typename I = typename E1::index_type,
-                //typename V = typename E1::value_type,
                 typename IT = decltype(std::declval<typename E1::index_type::value_type>() + std::declval<typename E2::index_type::value_type>() + std::declval<typename G3::index_type::value_type>()),
                 typename VT = decltype(std::declval<typename E1::value_type>() * std::declval<typename E2::value_type>() * std::declval<typename G3::mapped_type>())>
                 auto contract(const G3& gaunt,
@@ -365,6 +453,63 @@ namespace Multipole
                               const Multipole::stl::Radial::Expression<RE2, D, I, VT2>& rhs)
             {
                 return Radial::zip(lhs, rhs, [&](auto&& l, auto&& r) { return Contraction<typename VT1::expression_type, typename VT2::expression_type, G3>(l, r, gaunt); });
+            };
+            
+            template <typename E1,
+                typename E2,
+                typename G3,
+                typename PT,
+                std::size_t L = E1::l_max,
+                std::size_t S = E1::s_max,
+                Parity P = E1::parity,
+                typename I = typename E1::index_type,
+                typename IT = decltype(std::declval<typename E1::index_type::value_type>() + std::declval<typename E2::index_type::value_type>() + std::declval<typename G3::index_type::value_type>()),
+                typename VT = decltype(std::declval<typename E1::value_type>() * std::declval<typename E2::value_type>() * std::declval<typename G3::mapped_type>())>
+                auto neumann(const G3& gaunt,
+                             const SpinWeightedSpherical::Expression<E1, L, S, P, I, typename E1::value_type>& lhs,
+                             const SpinWeightedSpherical::Expression<E2, L, S, P, I, typename E2::value_type>& rhs,
+                             const PT& percentile)
+            {
+                SpinWeightedSpherical::Vector<L, S, E2::parity, typename E2::index_type::value_type, typename E2::value_type> running_x = rhs, temp;
+                auto f_00_Y_00 = rhs.at(typename E2::index_type{ 0, 0, 0 }), f_00_Y_00_sq = f_00_Y_00 * f_00_Y_00;
+                typename E2::value_type x_prime, denom;
+                PT deviation = 1;
+
+                //std::cout << "f_00_Y_00 = " << f_00_Y_00 << "\tf_00_Y_00_sq" << f_00_Y_00_sq << std::endl;
+
+                // 0th order term in summation
+                denom = static_cast<typename E2::value_type>(1) / f_00_Y_00;
+                x_prime = 0;
+
+                // 1st order term in summation
+                for (auto i = ++typename E2::index_type(running_x.extent().initial()); running_x.extent().contains(i); ++i)
+                {
+                    //std::cout << i << " = " << running_x.at(i) << std::endl;
+                    x_prime -= running_x.at(i) / f_00_Y_00_sq;
+                }
+                denom += x_prime;
+                deviation = std::abs((denom - x_prime) / denom);
+                //std::cout << "x_prime = " << x_prime << "\tdenom = " << denom << "\tdeviation = " << deviation << std::endl;
+
+                // 2nd order and onward
+                for (std::int32_t I = 2; deviation > percentile; ++I)
+                {
+                    x_prime = 0;
+
+                    temp = contract(gaunt, running_x / f_00_Y_00_sq, rhs);
+
+                    for (auto i = ++typename E2::index_type(running_x.extent().initial()); running_x.extent().contains(i); ++i)
+                    {
+                        x_prime += temp.at(i);
+                    }   
+                    denom += static_cast<typename E2::value_type>((I % 2) ? -1.f : 1.f) * x_prime;
+                    deviation = std::abs((x_prime) / denom);
+                    //std::cout << "x_prime = " << x_prime << "\tdenom = " << denom << "\tdeviation = " << deviation << std::endl;
+
+                    running_x = temp;
+                }
+
+                return lhs * denom;
             };
             
         } // namespace SpinWeightedGaunt

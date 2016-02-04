@@ -9,6 +9,7 @@
 #include <Gripper/stl/stlMultipoleTypes.hpp>
 #include <Gripper/PDE.hpp>
 
+
 namespace std
 {
     template <typename E>
@@ -17,3 +18,4 @@ namespace std
         return Multipole::stl::SpinWeightedSpherical::map(v, [](auto&& val) { return std::exp(val); });
     }
 }
+

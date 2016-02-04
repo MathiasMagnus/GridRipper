@@ -105,28 +105,29 @@ namespace PDE
 
         // Common interface
 
-        StateVector() {}
-        StateVector(const StateVector& in) : m_values(in.m_values) {}
-        StateVector(StateVector&& src) : m_values(std::move(src.m_values)) {}
-        ~StateVector() {}
+        StateVector() = default;
+        StateVector(const StateVector&) = default;
+        StateVector(StateVector&&) = default;
+        ~StateVector() = default;
 
-        StateVector& operator=(const StateVector& rhs) { m_values = rhs.m_values; return *this; }
+        StateVector& operator=(const StateVector&) = default;
+        StateVector& operator=(StateVector&&) = default;
 
         // StateVector interface
 
         StateVector(const T&... values) : m_values(std::make_tuple(values...)) {}
         StateVector(T&&... values) : m_values(std::make_tuple(values...)) {}
 
-        template <int N> auto& get() const { return std::get<N>(m_values); }
+        template <int N> const auto& get() const { return std::get<N>(m_values); }
         template <int N> auto& get() { return std::get<N>(m_values); }
 
         // Expression interface
 
         template <typename StateVecExpr>
-        StateVector(Expression<StateVecExpr> const& expr)
+        StateVector(const Expression<StateVecExpr>& expr)
         {
             // Extract type from encapsulating expression
-            StateVecExpr const& v = expr;
+            const StateVecExpr& v = expr;
 
             impl::Assign<(sizeof...(T)) - 1>::assign(m_values, v);
         }
@@ -144,7 +145,7 @@ namespace PDE
         public:
 
             Solver() = default;
-            Solver(const Solver& in) = delete;
+            Solver(const Solver&) = default;
             Solver(Solver&& src) = default;
             ~Solver() = default;
 
@@ -158,13 +159,29 @@ namespace PDE
             {
                 m_k.at(k1) = m_func(m_lhs);
 
-                m_k.at(k2) = m_func(m_lhs + static_cast<T>(0.5) * dt * m_k.at(k1));
+                tmp1 = static_cast<T>(0.5) * dt * m_k.at(k1);
+                tmp2 = m_lhs + tmp1;
+                m_k.at(k2) = m_func(tmp2);
                 
-                m_k.at(k3) = m_func(m_lhs + static_cast<T>(0.5) * dt * m_k.at(k2));
+                tmp1 = static_cast<T>(0.5) * dt * m_k.at(k2);
+                tmp2 = m_lhs + tmp1;
+                m_k.at(k3) = m_func(tmp2);
 
-                m_k.at(k4) = m_func(m_lhs + static_cast<T>(1.0) * dt * m_k.at(k3));
+                tmp1 = static_cast<T>(1.0) * dt * m_k.at(k3);
+                tmp2 = m_lhs + tmp1;
+                m_k.at(k4) = m_func(tmp2);
 
-                m_lhs = m_lhs + (dt / static_cast<T>(6.0))*(m_k.at(k1) + static_cast<T>(2.0) * m_k.at(k2) + static_cast<T>(2.0) * m_k.at(k3) + m_k.at(k4));
+                tmp1 = static_cast<T>(2.0) * m_k.at(k2);
+                tmp2 = m_k.at(k1) + tmp1;
+                tmp1 = static_cast<T>(2.0) * m_k.at(k3);
+                tmp3 = tmp2 + tmp1;
+                tmp1 = tmp3 + m_k.at(k4);
+                tmp2 = (dt / static_cast<T>(6.0)) * tmp1;
+                tmp3 = m_lhs + tmp2;
+
+                m_lhs = tmp3;
+
+                //m_lhs = m_lhs + (dt / static_cast<T>(6.0))*(m_k.at(k1) + static_cast<T>(2.0) * m_k.at(k2) + static_cast<T>(2.0) * m_k.at(k3) + m_k.at(k4));
 
                 return dt;
             }
@@ -179,7 +196,7 @@ namespace PDE
                 k4 = 3
             };
 
-            StateVector<States...> m_lhs;
+            StateVector<States...> m_lhs, tmp1, tmp2, tmp3;
             std::array<StateVector<States...>, 4> m_k;
             std::function<StateVector<States...>(const StateVector<States...>&)> m_func;
         };
