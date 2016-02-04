@@ -1,8 +1,8 @@
-#include <STL-Test2-Arithmetics.hpp>
+#include <STL_Test2_Arithmetics_Simple.hpp>
 
-
-int main(int argc, char* argv[])
+int main()
 {
+    /*
     Gripper::stl::initialize(argc, argv);
 
     auto L_max = Gripper::stl::getL();
@@ -301,6 +301,6 @@ int main(int argc, char* argv[])
     auto end = std::chrono::high_resolution_clock::now();
 
     Gripper::stl::clog << Gripper::TIMING << "Tests took " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << " seconds.";
-	
+	*/
 	return EXIT_SUCCESS;
 }

@@ -27,7 +27,6 @@ int main(int argc, char* argv[])
     coeff_vector c(ext);
     gaunt_matrix gaunt;
     real a, b, dt;
-    std::vector<real> c(100);
     solver rk4;
     std::size_t count;
 
