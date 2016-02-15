@@ -7,18 +7,19 @@ int main()
     using complex = std::complex<real>;     // Type used to represent complex values
     using vector = std::valarray<real>;     // Type used to represent vector values
 
-    using state_vector = PDE::StateVector<real, complex, vector>; // Type used as a state vector
-    using solver = PDE::RK4::Solver<real, state_vector>;          // Type used to integrate a PDE over state vectors
+    using state_vector = PDE::StateVector<real, complex, vector>;       // Type used as a state vector
+    using solver = PDE::RK4::Solver<real, state_vector>;                // Type used to integrate a PDE over state vectors
 
-    using time_point = std::chrono::high_resolution_clock::time_point;      // Time point as returned by times
+    using time_point = std::chrono::high_resolution_clock::time_point;  // Time point as returned by times
 
-    // Declare variables
-    solver rk4;
+    // Declare variables    
     real a, x, phi, dx, tolerance;
+    complex b;
     vector c;
 
     // Initialize variables
     a = 100.f;
+    b = { 1.f, 0.f };
     c = { 10.f, 50.f, 100.f, 500.f, 1000.f };
     phi = 3.14f / 180;
 
@@ -27,7 +28,8 @@ int main()
     tolerance = 1e-4f;
 
     // Initialize solver
-    rk4.setLHS(state_vector(a, complex(1.f, 0.f), c));
+    solver rk4;
+    rk4.setLHS(state_vector(a, b, c));
     rk4.setEquationSystem([=](const state_vector& state)
     {
         using namespace std::literals;

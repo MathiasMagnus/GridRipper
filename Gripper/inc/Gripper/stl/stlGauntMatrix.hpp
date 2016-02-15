@@ -471,45 +471,52 @@ namespace Multipole
                              const PT& percentile)
             {
                 SpinWeightedSpherical::Vector<L, S, E2::parity, typename E2::index_type::value_type, typename E2::value_type> running_x = rhs, temp;
-                auto f_00_Y_00 = rhs.at(typename E2::index_type{ 0, 0, 0 }), f_00_Y_00_sq = f_00_Y_00 * f_00_Y_00;
-                typename E2::value_type x_prime, denom;
-                PT deviation = 1;
-
-                //std::cout << "f_00_Y_00 = " << f_00_Y_00 << "\tf_00_Y_00_sq" << f_00_Y_00_sq << std::endl;
+                auto f_00_Y_00_inv = static_cast<typename E2::value_type>(1) / rhs.at(typename E2::index_type{ 0, 0, 0 });
+                typename E2::value_type x_prime, sum, prev_sum;
+                PT deviation;
 
                 // 0th order term in summation
-                denom = static_cast<typename E2::value_type>(1) / f_00_Y_00;
-                x_prime = 0;
+                x_prime = static_cast<typename E2::value_type>(1);
+                sum = x_prime;
 
                 // 1st order term in summation
+                x_prime = 0;
+
                 for (auto i = ++typename E2::index_type(running_x.extent().initial()); running_x.extent().contains(i); ++i)
                 {
-                    //std::cout << i << " = " << running_x.at(i) << std::endl;
-                    x_prime -= running_x.at(i) / f_00_Y_00_sq;
+                    x_prime += running_x.at(i);
                 }
-                denom += x_prime;
-                deviation = std::abs((denom - x_prime) / denom);
-                //std::cout << "x_prime = " << x_prime << "\tdenom = " << denom << "\tdeviation = " << deviation << std::endl;
+                x_prime *= f_00_Y_00_inv;
+
+                prev_sum = sum;
+                sum -= x_prime;
+                deviation = std::abs(prev_sum - sum) / std::max(prev_sum, sum);
+
+                //std::cout << "Step 1 has deviation = " << deviation << std::endl;
 
                 // 2nd order and onward
                 for (std::int32_t I = 2; deviation > percentile; ++I)
                 {
                     x_prime = 0;
-
-                    temp = contract(gaunt, running_x / f_00_Y_00_sq, rhs);
+                    temp = contract(gaunt, running_x, rhs);
 
                     for (auto i = ++typename E2::index_type(running_x.extent().initial()); running_x.extent().contains(i); ++i)
                     {
                         x_prime += temp.at(i);
-                    }   
-                    denom += static_cast<typename E2::value_type>((I % 2) ? -1.f : 1.f) * x_prime;
-                    deviation = std::abs((x_prime) / denom);
-                    //std::cout << "x_prime = " << x_prime << "\tdenom = " << denom << "\tdeviation = " << deviation << std::endl;
+                    }
+                    x_prime *= f_00_Y_00_inv;
 
+                    prev_sum = sum;
+                    sum += static_cast<typename E2::value_type>((I % 2) ? -1.f : 1.f) * x_prime;
+                    deviation = std::abs(prev_sum - sum) / std::max(prev_sum, sum);
                     running_x = temp;
+
+                    //std::cout << "Step " << I << " has deviation = " << deviation << std::endl;
                 }
 
-                return lhs * denom;
+                //std::cout << "sum / f_00_Y_00 = factor : " << sum << " / " << rhs.at(typename E2::index_type{ 0, 0, 0 }) << " = " << sum * f_00_Y_00_inv << std::endl;
+
+                return lhs * (sum * f_00_Y_00_inv);
             };
             
         } // namespace SpinWeightedGaunt

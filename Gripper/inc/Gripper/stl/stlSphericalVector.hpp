@@ -132,7 +132,7 @@ namespace Multipole
                 Vector(const Vector& in) = default;
                 Vector(Vector&& in) = default;
                 ~Vector() = default;
-
+                
                 Vector& operator=(const Vector&) = default;
                 Vector& operator=(Vector&&) = default;
 
@@ -603,8 +603,22 @@ namespace Multipole
 
                 Map(Expression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type> const& u, const F& f) : _u(u), _f(f)
                 {
-                    printf("");
+                    //std::cout << "Map CTOR" << std::endl;
                 }
+
+                //Map(const Map& in) : _u(in._u), _f(in._f)
+                //{
+                //    std::cout << "Map CCTOR" << std::endl;
+                //}
+                //
+                //Map(Map&& in) : _u(std::swap(in._u)), _f(std::swap(in._f))
+                //{
+                //    std::cout << "Map MCTOR" << std::endl;
+                //}
+                //
+                //~Map() {
+                //    std::cout << "Map DTOR" << std::endl;
+                //}
 
                 // STL interface
 
@@ -836,10 +850,10 @@ namespace Multipole
             auto l_parity(const typename E::extent_type& ext) { return impl::l_parity<E>(ext, [](const typename E::index_type& i) { return i.l % 2 ? -1 : 1; }); }
             
             template <typename E>
-            auto eth(const Expression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Eth<E, Spin::Down>(u); }
+            auto eth(const Expression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Eth<E, Spin::Up>(u); }
 
             template <typename E>
-            auto eth_bar(const Expression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Eth<E, Spin::Up>(u); }
+            auto eth_bar(const Expression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Eth<E, Spin::Down>(u); }
 
 
             template <std::size_t L_Max, std::size_t S_Max, Parity P, typename IT, typename VT>
@@ -874,6 +888,9 @@ namespace Multipole
                 Vector(const Vector& in) = default;
                 Vector(Vector&& in) = default;
                 ~Vector() = default;
+                //~Vector() {
+                //    std::cout << "Vector DTOR" << std::endl;
+                //}
 
                 Vector& operator=(const Vector&) = default;
                 Vector& operator=(Vector&&) = default;
