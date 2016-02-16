@@ -10,11 +10,13 @@
 #include <gsl/gsl_sf.h>
 
 // Standard C++ includes
-#include <vector>                   // Needed for internal storage and providing results
+#include <cstddef>                  // std::size_t
+#include <functional>               // std::reference_wrapper, std::cref
+#include <vector>                   // std::vector
 #include <future>                   // Needed for guided parallel processing
 #include <array>                    // Needed for guided parallel processing
 #include <utility>                  // Needed for std::pair, std::declval
-#define _USE_MATH_DEFINES
+//#define _USE_MATH_DEFINES
 #include <cmath>
 #include <complex>
 
@@ -24,29 +26,25 @@ namespace Multipole
     {
         namespace Spherical
         {
+            /// <summary>Traits class consisting of type aliases describing spherical expansion coefficient vectors.</summary>
+            ///
             template <std::size_t L_Max, Parity P, typename IT, typename VT>
-            class VectorTraits
+            struct VectorTraits
             {
-            public:
+                // Common type aliases
 
-                // Common typedefs
+                using value_type = VT;
 
-                typedef VT value_type;
+                // STL type aliases
 
-                // STL typedefs
+                using container_type = std::vector<value_type>;
+                using size_type = typename container_type::size_type;
 
-                typedef std::vector<value_type>                         container_type;
-                typedef typename container_type::size_type              size_type;
-                typedef typename container_type::iterator               iterator_type;
-                typedef typename container_type::const_iterator         const_iterator_type;
-                typedef typename container_type::reverse_iterator       reverse_iterator_type;
-                typedef typename container_type::const_reverse_iterator const_reverse_iterator_type;
+                // Lattice type aliases
 
-                // Lattice typedefs
-
-                typedef Extent<L_Max, IT>                       extent_type;
-                typedef typename extent_type::index_type        index_type;
-                typedef typename index_type::value_type         index_internal_type;
+                using extent_type = Extent<L_Max, IT>;
+                using index_type = typename extent_type::index_type;
+                using index_internal_type = typename index_type::value_type;
 
                 // Lattice static members
 
@@ -55,69 +53,136 @@ namespace Multipole
             };
 
 
+            /// <summary>Read-only Expression Template base class of spherical expansion coefficient vectors to be implemented statically.</summary>
+            ///
             template <typename ET, std::size_t L_Max, Parity P, typename IT, typename VT>
-            class Expression : public VectorTraits<L_Max, P, IT, VT>
+            struct ConstExpression : public VectorTraits<L_Max, P, IT, VT>
             {
-            public:
+                // ConstExpression type aliases
 
-                // Common typedefs
-                
                 using expression_type = ET;
+
+                // Common type aliases
+
                 using typename VectorTraits<L_Max, P, IT, VT>::value_type;
 
-                // STL typedefs
+                // STL type aliases
 
                 using typename VectorTraits<L_Max, P, IT, VT>::container_type;
                 using typename VectorTraits<L_Max, P, IT, VT>::size_type;
-                using typename VectorTraits<L_Max, P, IT, VT>::iterator_type;
-                using typename VectorTraits<L_Max, P, IT, VT>::const_iterator_type;
-                using typename VectorTraits<L_Max, P, IT, VT>::reverse_iterator_type;
-                using typename VectorTraits<L_Max, P, IT, VT>::const_reverse_iterator_type;
 
-                // Lattice typedefs
+                // Lattice type aliases
+
+                using typename VectorTraits<L_Max, P, IT, VT>::extent_type;
+                using typename VectorTraits<L_Max, P, IT, VT>::index_type;
+                using typename VectorTraits<L_Max, P, IT, VT>::index_internal_type;
+
+                // Lattice static members
+
+                using VectorTraits<L_Max, P, IT, VT>::l_max;
+                using VectorTraits<L_Max, P, IT, VT>::parity;
+
+                // ConstExpression interface
+
+                operator const expression_type&()   const { return static_cast<const expression_type&>(*this); }
+
+                // ConstSTL interface
+
+                /// <summary>Returns the number of coefficients inside the vector.</summary>
+                ///
+                size_type   size()                  const { return static_cast<const expression_type&>(*this).size(); }
+
+                /// <summary>Returns the <c>i</c>th element without bounds checking.</summary>
+                ///
+                value_type  operator[](size_type i) const { return static_cast<const expression_type&>(*this)[i]; }
+
+                /// <summary>Returns the <c>i</c>th element with bounds checking.</summary>
+                ///
+                value_type  at(size_type i)         const { return static_cast<const expression_type&>(*this).at(i); }
+
+                // ConstLattice interface
+
+                /// <summary>Returns a pair of indecies representing the span of the series expansion.</summary>
+                ///
+                extent_type extent()                const { return static_cast<const expression_type&>(*this).extent(); }
+
+                /// <summary>Returns the coefficient corresponding to index <c>i</c>.</summary>
+                ///
+                value_type  at(const index_type& i) const { return static_cast<const expression_type&>(*this).at(i); }
+            };
+
+
+            /// <summary>Read-write Expression Template base class of spherical expansion coefficient vectors to be implemented statically.</summary>
+            ///
+            template <typename ET, std::size_t L_Max, Parity P, typename IT, typename VT>
+            struct Expression : public ConstExpression<ET, L_Max, P, IT, VT>
+            {
+                // Expression type aliases
+
+                using expression_type = ET;
+
+                // Common type aliases
+                
+                using typename VectorTraits<L_Max, P, IT, VT>::value_type;
+
+                // STL type aliases
+
+                using typename VectorTraits<L_Max, P, IT, VT>::container_type;
+                using typename VectorTraits<L_Max, P, IT, VT>::size_type;
+
+                // Lattice type aliases
  
                 using typename VectorTraits<L_Max, P, IT, VT>::extent_type;
                 using typename VectorTraits<L_Max, P, IT, VT>::index_type;
                 using typename VectorTraits<L_Max, P, IT, VT>::index_internal_type;
-                
-                // STL interface
 
-                size_type   size()                  const { return static_cast<ET const&>(*this).size(); }
-                value_type  operator[](size_type i) const { return static_cast<ET const&>(*this)[i]; }
-                value_type  at(size_type i)         const { return static_cast<ET const&>(*this).at(i); }
+                // Lattice static members
 
-                // Lattice interface
-
-                extent_type extent()                const { return static_cast<ET const&>(*this).extent(); }
-                value_type  at(const index_type& i) const { return static_cast<ET const&>(*this).at(i); }
+                using VectorTraits<L_Max, P, IT, VT>::l_max;
+                using VectorTraits<L_Max, P, IT, VT>::parity;
 
                 // Expression interface
 
-                operator ET&()             { return static_cast<ET&>(*this); }
-                operator ET const&() const { return static_cast<const ET&>(*this); }
+                operator expression_type&()         { return static_cast<expression_type&>(*this); }
+                
+                // STL interface
+
+                /// <summary>Returns the <c>i</c>th element without bounds checking.</summary>
+                ///
+                value_type& operator[](size_type i) { return static_cast<expression_type&>(*this)[i]; }
+
+                /// <summary>Returns the <c>i</c>th element with bounds checking.</summary>
+                ///
+                value_type& at(size_type i)         { return static_cast<expression_type&>(*this).at(i); }
+
+                // Lattice interface
+
+                /// <summary>Returns the coefficient corresponding to index <c>i</c>.</summary>
+                ///
+                value_type& at(const index_type& i) { return static_cast<expression_type&>(*this).at(i); }
             };
+
 
             template <typename E> auto l_parity(const typename E::extent_type&); // FIXME: this forward declaration should not really exist
 
+
+            /// <summary>Class storing the coefficients of a series expansion over spherical harmonics.</summary>
+            ///
             template <std::size_t L_Max, Parity P, typename IT, typename VT>
-            class Vector : public Expression<Vector<L_Max, P, IT, VT>, L_Max, P, IT, VT>
+            class Vector : public VectorTraits<L_Max, P, IT, VT>
             {
             public:
 
-                // Common typedefs
+                // Common type aliases
 
                 using typename VectorTraits<L_Max, P, IT, VT>::value_type;
 
-                // STL typedefs
+                // STL type aliases
 
                 using typename VectorTraits<L_Max, P, IT, VT>::container_type;
                 using typename VectorTraits<L_Max, P, IT, VT>::size_type;
-                using typename VectorTraits<L_Max, P, IT, VT>::iterator_type;
-                using typename VectorTraits<L_Max, P, IT, VT>::const_iterator_type;
-                using typename VectorTraits<L_Max, P, IT, VT>::reverse_iterator_type;
-                using typename VectorTraits<L_Max, P, IT, VT>::const_reverse_iterator_type;
 
-                // Lattice typedefs
+                // Lattice type aliases
 
                 using typename VectorTraits<L_Max, P, IT, VT>::extent_type;
                 using typename VectorTraits<L_Max, P, IT, VT>::index_type;
@@ -126,61 +191,118 @@ namespace Multipole
                 template <typename E>
                 static auto l_parity(const typename E::extent_type& ext) { return Multipole::stl::Spherical::l_parity(ext); }
 
-                // Common interface
+                // Constructors / Destructors / Assignment operators
 
+                /// <summary>Default constructor.</summary>
+                /// <remarks>Default constructed objects are in an invalid state.</remarks>
+                ///
                 Vector() = default;
+
+                /// <summary>Default copy constructor.</summary>
+                ///
                 Vector(const Vector& in) = default;
+
+                /// <summary>Default move constructor.</summary>
+                ///
                 Vector(Vector&& in) = default;
+
+                /// <summary>Default destructor.</summary>
+                ///
                 ~Vector() = default;
                 
+                /// <summary>Default copy assignment operator.</summary>
+                ///
                 Vector& operator=(const Vector&) = default;
+
+                /// <summary>Default move assignment operator.</summary>
+                ///
                 Vector& operator=(Vector&&) = default;
+
+                ///<summary>Constructs a series expansion vector of <c>ext</c> size.</summary>
+                ///
+                Vector(const extent_type& ext) : m_data(static_cast<size_type>(ext.final() - ext.initial())), m_extent(ext) {}
+
+                ///<summary>Constructs a series expansion vector from the expression <c>expr</c>.</summary>
+                ///
+                template <typename ConstVecExpr, std::size_t L_Max, typename IndexType, typename ValueType>
+                Vector(const ConstExpression<ConstVecExpr, L_Max, P, IndexType, ValueType>& expr)
+                {
+                    serial_evaluator(expr);
+                }
+
+                ///<summary>Constructs a series expansion vector from the expression <c>expr</c>.</summary>
+                ///
+                template <typename ConstVecExpr, std::size_t L_Max, typename IndexType, typename ValueType>
+                Vector& operator=(const ConstExpression<ConstVecExpr, L_Max, P, IndexType, ValueType>& expr)
+                {
+                    serial_evaluator(expr);
+
+                    return *this;
+                }
+
+                // ConstSTL interface
+
+                /// <summary>Returns the number of coefficients inside the vector.</summary>
+                ///
+                size_type size() const { return m_data.size(); }
+
+                /// <summary>Returns the <c>i</c>th element without bounds checking.</summary>
+                ///
+                value_type operator[](size_type i) const { return m_data[i]; }
+
+                /// <summary>Returns the <c>i</c>th element with bounds checking.</summary>
+                ///
+                value_type  at(size_type i)         const { return m_data.at(i); }
 
                 // STL interface
 
-                iterator_type begin() { return m_data.begin(); }
-                const_iterator_type begin() const { return m_data.begin(); }
-                const_iterator_type cbegin() const { return m_data.cbegin(); }
+                /// <summary>Returns the <c>i</c>th element without bounds checking.</summary>
+                ///
+                value_type& operator[](size_type i) { return m_data[i]; }
 
-                iterator_type end() { return m_data.end(); }
-                const_iterator_type end() const { return m_data.end(); }
-                const_iterator_type cend() const { return m_data.cend(); }
+                /// <summary>Returns the <c>i</c>th element with bounds checking.</summary>
+                ///
+                value_type& at(size_type i) { return m_data.at(i); }
 
-                reverse_iterator_type rbegin() { return m_data.rbegin(); }
-                const_reverse_iterator_type rbegin() const { return m_data.rbegin(); }
-                const_reverse_iterator_type crbegin() const { return m_data.crbegin(); }
+                // Extra STL functions
 
-                reverse_iterator_type rend() { return m_data.rend(); }
-                const_reverse_iterator_type rend() const { return m_data.rend(); }
-                const_reverse_iterator_type crend() const { return m_data.crend(); }
+                /// <summary>Returns pointer to the underlying memory.</summary>
+                ///
+                value_type* data() { return m_data.data(); }
 
-                value_type& at(size_type pos) { return m_data.at(pos); }                        // Returns specified element of the Vector with bounds checking
-                const value_type& at(size_type pos) const { return m_data.at(pos); }            // Returns specified const element of the Vector with bounds checking
-                value_type& operator[](size_type pos) { return m_data[pos]; }                   // Returns specified element of the Vector
-                const value_type& operator[](size_type pos) const { return m_data[pos]; }       // Returns specified const element of the Vector
+                /// <summary>Returns pointer to the underlying memory.</summary>
+                ///
+                const value_type* data() const { return m_data.data(); }
 
-                value_type* data() { return m_data.data(); }                                    // Returns pointer to the underlying memory
-                const value_type* data() const { return m_data.data(); }                        // Returns pointer to the underlying memory
+                /// <summary>Clears the contents of the Vector.</summary>
+                ///
+                void clear() { m_data.clear(); }
 
-                size_type size() const { return m_data.size(); }                                // Returns the number of elements inside the Vector
-                void clear() { m_data.clear(); }                                                // Clear the contents of the Vector
+                // ConstLattice interface
+
+                /// <summary>Returns a pair of indecies representing the span of the series expansion.</summary>
+                ///
+                extent_type extent() const { return m_extent; }
+
+                /// <summary>Returns the coefficient corresponding to index <c>i</c>.</summary>
+                ///
+                value_type at(const index_type& i) const { return m_data.at(index_type::convert(pos)); }
 
                 // Lattice interface
 
-                Vector(const extent_type& ext) : m_data(static_cast<size_type>(ext.final() - ext.initial())), m_extent(ext) {}
+                /// <summary>Returns the coefficient corresponding to index <c>i</c>.</summary>
+                ///
+                value_type& at(const index_type& i) { return m_data.at(index_type::convert(pos)); }
 
-                value_type& at(const index_type& pos) { return m_data.at(index_type::convert(pos)); }
-                const value_type& at(const index_type& pos) const { return m_data.at(index_type::convert(pos)); }
+            private:
 
-                extent_type extent() const { return m_extent; }
-
-                // Exrpession interface
-
-                template <typename VecExpr, std::size_t L_Max, typename IndexType, typename ValueType>
-                Vector(Expression<VecExpr, L_Max, P, IndexType, ValueType> const& expr)
+                /// <summary>Initializes internal states and evaluates elements of the expression <c>expr</c> in a serial manner.</summary>
+                ///
+                template <typename ConstVecExpr, std::size_t L_Max, typename IndexType, typename ValueType>
+                void serial_evaluator(const ConstExpression<ConstVecExpr, L_Max, P, IndexType, ValueType>& expr)
                 {
                     // Extract type from encapsulating expression
-                    VecExpr const& v = expr;
+                    const ConstVecExpr& v = expr;
 
                     // Resize if needed
                     if (m_extent != v.extent())
@@ -193,10 +315,218 @@ namespace Multipole
                         this->at(i) = v.at(i);
                 }
 
-            private:
-
                 container_type m_data;
                 extent_type m_extent;
+            };
+
+
+            /// <summary>Class providing read-only access with reference semantics to the elements of a series expansion with storage.</summary>
+            ///
+            template <std::size_t L_Max, Parity P, typename IT, typename VT>
+            class ConstView : public ConstExpression<ConstView<L_Max, P, IT, VT>, L_Max, P, IT, VT>
+            {
+            public:
+
+                // Expression type aliases
+
+                using expression_type = typename ConstExpression<ConstView<L_Max, P, IT, VT>, L_Max, P, IT, VT>;
+
+                // Common type aliases
+
+                using typename expression_type::value_type;
+
+                // STL type aliases
+
+                using typename expression_type::container_type;
+                using typename expression_type::size_type;
+
+                // Lattice type aliases
+
+                using typename expression_type::extent_type;
+                using typename expression_type::index_type;
+                using typename expression_type::index_internal_type;
+
+                // Lattice static members
+
+                using expression_type::l_max;
+                using expression_type::parity;
+
+                // Constructors / Destructors / Assignment operators
+
+                /// <summary>Default constructor.</summary>
+                /// <remarks>Default constructor deleted, as underlying reference type cannot be default initialized.</remarks>
+                ///
+                ConstView() = delete;
+
+                /// <summary>Default copy constructor.</summary>
+                ///
+                ConstView(const ConstView&) = default;
+
+                /// <summary>Default move constructor.</summary>
+                /// <remarks>Default move constructor deleted, as underlying reference type cannot be moved.</remarks>
+                ///
+                ConstView(ConstView&&) = delete;
+
+                /// <summary>Default destructor.</summary>
+                ///
+                ~ConstView() = default;
+
+                /// <summary>Default copy assign operator.</summary>
+                ///
+                ConstView& operator=(const ConstView&) = default;
+
+                /// <summary>Default move assign operator.</summary>
+                /// <remarks>Default move assign operator deleted, as underlying reference type cannot be moved.</remarks>
+                ///
+                ConstView& operator=(ConstView&&) = delete;
+
+                /// <summary>Constructs a <c>View</c> from a <c>Vector</c>.</summary>
+                ///
+                ConstView(const vector_type& v) : _v(std::cref(v)) {}
+
+                // ConstSTL interface
+
+                /// <summary>Returns the number of coefficients inside the vector.</summary>
+                ///
+                size_type  size()                  const { return _v.get().size(); }
+
+                /// <summary>Returns the <c>i</c>th element without bounds checking.</summary>
+                ///
+                value_type operator[](size_type i) const { return _v.get()[i]; }
+
+                /// <summary>Returns the <c>i</c>th element with bounds checking.</summary>
+                ///
+                value_type at(size_type i)         const { return _v.get().at(i); }
+
+                // ConstLattice interface
+
+                /// <summary>Returns a pair of indecies representing the span of the series expansion.</summary>
+                ///
+                extent_type extent() const { return _v.get().extent(); }
+
+                /// <summary>Returns the coefficient corresponding to index <c>i</c>.</summary>
+                ///
+                value_type at(const index_type& i) const { return _v.get().at(i); }
+
+            private:
+
+                using vector_type = Vector<l_max, parity, index_internal_type, value_type>;
+                using reference_type = std::reference_wrapper<const vector_type>;
+
+                reference_type _v;
+            };
+
+
+            /// <summary>Class providing read-write access with reference semantics to the elements of a series expansion with storage.</summary>
+            ///
+            template <std::size_t L_Max, Parity P, typename IT, typename VT>
+            class View : public Expression<View<L_Max, P, IT, VT>, L_Max, P, IT, VT>
+            {
+            public:
+
+                // Expression type aliases
+
+                using expression_type = typename Expression<View<L_Max, P, IT, VT>, L_Max, P, IT, VT>;
+
+                // Common type aliases
+
+                using typename expression_type::value_type;
+
+                // STL type aliases
+
+                using typename expression_type::container_type;
+                using typename expression_type::size_type;
+
+                // Lattice type aliases
+
+                using typename expression_type::extent_type;
+                using typename expression_type::index_type;
+                using typename expression_type::index_internal_type;
+
+                // Lattice static members
+
+                using expression_type::l_max;
+                using expression_type::parity;
+
+                // Constructors / Destructors / Assignment operators
+
+                /// <summary>Default constructor.</summary>
+                /// <remarks>Default constructor deleted, as underlying reference type cannot be default initialized.</remarks>
+                ///
+                View() = delete;
+
+                /// <summary>Default copy constructor.</summary>
+                ///
+                View(const View&) = default;
+
+                /// <summary>Default move constructor.</summary>
+                /// <remarks>Default move constructor deleted, as underlying reference type cannot be moved.</remarks>
+                ///
+                View(View&&) = delete;
+
+                /// <summary>Default destructor.</summary>
+                ///
+                ~View() = default;
+
+                /// <summary>Default copy assign operator.</summary>
+                ///
+                View& operator=(const View&) = default;
+
+                /// <summary>Default move assign operator.</summary>
+                /// <remarks>Default move assign operator deleted, as underlying reference type cannot be moved.</remarks>
+                ///
+                View& operator=(View&&) = delete;
+
+                /// <summary>Constructs a <c>View</c> from a <c>Vector</c>.</summary>
+                ///
+                View(vector_type& v) : _v(std::ref(v)) {}
+
+                // ConstSTL interface
+
+                /// <summary>Returns the number of coefficients inside the vector.</summary>
+                ///
+                size_type  size()                  const { return _v.get().size(); }
+
+                /// <summary>Returns the <c>i</c>th element without bounds checking.</summary>
+                ///
+                value_type operator[](size_type i) const { return _v.get()[i]; }
+
+                /// <summary>Returns the <c>i</c>th element with bounds checking.</summary>
+                ///
+                value_type at(size_type i)         const { return _v.get().at(i); }
+
+                // STL interface
+
+                /// <summary>Returns the <c>i</c>th element without bounds checking.</summary>
+                ///
+                value_type& operator[](size_type i) { return _v.get()[i]; }
+
+                /// <summary>Returns the <c>i</c>th element with bounds checking.</summary>
+                ///
+                value_type& at(size_type i) { return _v.get().at(i); }
+
+                // ConstLattice interface
+
+                /// <summary>Returns a pair of indecies representing the span of the series expansion.</summary>
+                ///
+                extent_type extent() const { return _v.get().extent(); }
+
+                /// <summary>Returns the coefficient corresponding to index <c>i</c>.</summary>
+                ///
+                value_type at(const index_type& i) const { return _v.get().at(i); }
+
+                // Lattice interface
+
+                /// <summary>Returns the coefficient corresponding to index <c>i</c>.</summary>
+                ///
+                value_type& at(const index_type& i) { return _v.get().at(i) }
+
+            private:
+
+                using vector_type = Vector<l_max, parity, index_internal_type, value_type>;
+                using reference_type = std::reference_wrapper<vector_type>;
+
+                reference_type _v;
             };
 
 
