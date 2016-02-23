@@ -10,10 +10,9 @@
 #include <Gripper/stl/stlSphericalVector.hpp>               // For Spherical vector types
 
 #include <Gripper/stl/stlGauntMatrix.hpp>                   // For Gaunt matrix types
-/*
+
 #include <Gripper/stl/stlSpinWeightedSphericalIndex.hpp>    // For SpinWeightedSpherical index types
 #include <Gripper/stl/stlSpinWeightedSphericalExtent.hpp>   // For SpinWeightedSpherical extent types
 #include <Gripper/stl/stlSpinWeightedSphericalVector.hpp>   // For SpinWeightedSpherical vector types
 
 #include <Gripper/stl/stlSpinWeightedGauntMatrix.hpp>       // For SpinWeightedGaunt matrix types
-*/

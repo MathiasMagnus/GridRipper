@@ -1,17 +1,17 @@
 #pragma once
 
-// Standard C++ includes
-#include <cstdlib>          // EXIT_SUCCESS, EXIT_FAILURE
-#include <cassert>          // assert
-#include <type_traits>      // std::common_type_t
-#include <cstdint>          // std::int32_t
-#include <iostream>         // std::cout
-#include <chrono>           // std::chrono::high_resolution_clock
-
-#include <fstream>
-
 // Gripper includes
 #include <Gripper/stl/stlMultipoleTypes.hpp>
+
+// Standard C++ includes
+#include <cassert>          // assert
+#include <cstdlib>          // EXIT_SUCCESS, EXIT_FAILURE
+#include <type_traits>      // std::common_type_t
+#include <cstdint>          // std::int32_t
+#include <complex>          // std::complex
+#include <iostream>         // std::cout
+#include <chrono>           // std::chrono::high_resolution_clock
+#include <cmath>            // std::abs
 
 
 template < typename E1, typename E2 >
