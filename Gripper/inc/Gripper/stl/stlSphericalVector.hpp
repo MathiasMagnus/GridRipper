@@ -1,9 +1,9 @@
 #pragma once
 
 // Gripper includes
-#include <Gripper/stl/stlParity.hpp>
-#include <Gripper/stl/stlSphericalIndex.hpp>
-#include <Gripper/stl/stlSphericalExtent.hpp>
+#include <Gripper/stl/stlParity.hpp>            // Multipole::stl::Parity
+#include <Gripper/stl/stlSphericalIndex.hpp>    // Multipole::stl::Spherical::Index
+#include <Gripper/stl/stlSphericalExtent.hpp>   // Multipole::stl::Spherical::Extent
 
 // Standard C++ includes
 #include <cstddef>                  // std::size_t
@@ -181,6 +181,11 @@ namespace Multipole
                 using typename VectorTraits<L_Max, P, IT, VT>::index_type;
                 using typename VectorTraits<L_Max, P, IT, VT>::index_internal_type;
 
+                // Lattice static members
+
+                using VectorTraits<L_Max, P, IT, VT>::l_max;
+                using VectorTraits<L_Max, P, IT, VT>::parity;
+
                 static auto l_parity(const extent_type& ext) { return Multipole::stl::Spherical::l_parity<Expression<Vector<L_Max, P, IT, VT>, L_Max, P, IT, VT>>(ext); }
 
                 // Constructors / Destructors / Assignment operators
@@ -319,14 +324,7 @@ namespace Multipole
                 ///
                 size_type convert(const index_type& pos) const
                 {
-                    // FIXME: I am a terribly slow indexing funcion work-around!!!
-
-                    size_type counter = 0;
-
-                    for (index_type I = m_extent.initial(); I != pos; ++I)
-                        ++counter;
-
-                    return counter;
+                    return pos.l * (pos.l + static_cast<index_internal_type>(1u)) + pos.m;
                 }
 
                 /// <summary>Initializes internal states and evaluates elements of the expression <c>expr</c> in a serial manner.</summary>
@@ -348,8 +346,8 @@ namespace Multipole
                         this->at(i) = v.at(i);
                 }
 
-                container_type m_data;
                 extent_type m_extent;
+                container_type m_data;
             };
 
 
@@ -730,6 +728,11 @@ namespace Multipole
                 using typename expression_type::index_type;
                 using typename expression_type::index_internal_type;
 
+                // Lattice static members
+
+                using expression_type::l_max;
+                using expression_type::parity;
+
                 /// <summary>Constructs a <c>Map</c> from an expression <c>u</c> and a function object <c>f</c>.</summary>
                 ///
                 Map(const outer_expression_type& u, const F& f) : _u(u), _f(f) {}
@@ -763,7 +766,7 @@ namespace Multipole
             private:
 
                 const E _u;
-                F _f;
+                const F _f;
             };
 
 
@@ -793,6 +796,11 @@ namespace Multipole
                 using typename expression_type::extent_type;
                 using typename expression_type::index_type;
                 using typename expression_type::index_internal_type;
+
+                // Lattice static members
+
+                using expression_type::l_max;
+                using expression_type::parity;
 
                 /// <summary>Constructs a <c>Zip</c> from two possibly varying expressions <c>u</c> and <c>v</c> and a function object <c>f</c>.</summary>
                 ///
@@ -880,10 +888,10 @@ namespace Multipole
 
 // Unary 
 template <typename E, std::size_t L, Multipole::stl::Parity P, typename I, typename T> const auto operator+(const Multipole::stl::Spherical::ConstExpression<E, L, P, I, T>& v) { return Multipole::stl::Spherical::map(v, [](auto&& val) { return static_cast<T>(1) * val; }); }
-template <std::size_t L, Multipole::stl::Parity P, typename I, typename T> const auto operator+(const Multipole::stl::Spherical::Vector<L, P, I, T>& v) { return Multipole::stl::Spherical::map(Multipole::stl::Spherical::ConstView<L, P, I, T>(v), [](auto&& val) { return static_cast<T>(1) * val; }); }
 template <typename E, std::size_t L, Multipole::stl::Parity P, typename I, typename T> const auto operator-(const Multipole::stl::Spherical::ConstExpression<E, L, P, I, T>& v) { return Multipole::stl::Spherical::map(v, [](auto&& val) { return static_cast<T>(-1) * val; }); }
-template <std::size_t L, Multipole::stl::Parity P, typename I, typename T> const auto operator-(const Multipole::stl::Spherical::Vector<L, P, I, T>& v) { return Multipole::stl::Spherical::map(Multipole::stl::Spherical::ConstView<L, P, I, T>(v), [](auto&& val) { return static_cast<T>(-1) * val; }); }
 template <typename E, std::size_t L, Multipole::stl::Parity P, typename I, typename T> const auto conjugate(const Multipole::stl::Spherical::ConstExpression<E, L, P, I, T>& v) { return Multipole::stl::Spherical::map(v, [](auto&& val) { return std::complex<float>(1, -1) * val; }); }
+template <std::size_t L, Multipole::stl::Parity P, typename I, typename T> const auto operator+(const Multipole::stl::Spherical::Vector<L, P, I, T>& v) { return Multipole::stl::Spherical::map(Multipole::stl::Spherical::ConstView<L, P, I, T>(v), [](auto&& val) { return static_cast<T>(1) * val; }); }
+template <std::size_t L, Multipole::stl::Parity P, typename I, typename T> const auto operator-(const Multipole::stl::Spherical::Vector<L, P, I, T>& v) { return Multipole::stl::Spherical::map(Multipole::stl::Spherical::ConstView<L, P, I, T>(v), [](auto&& val) { return static_cast<T>(-1) * val; }); }
 template <std::size_t L, Multipole::stl::Parity P, typename I, typename T> const auto conjugate(const Multipole::stl::Spherical::Vector<L, P, I, T>& v) { return Multipole::stl::Spherical::map(Multipole::stl::Spherical::ConstView<L, P, I, T>(v), [](auto&& val) { return std::complex<float>(1, -1) * val; }); }
 
 // Binary

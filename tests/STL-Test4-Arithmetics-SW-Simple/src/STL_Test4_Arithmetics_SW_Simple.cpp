@@ -69,7 +69,7 @@ int main()
         }
 
         // Contraction init
-        gaunt.calculate();
+        gaunt = gaunt_matrix(lms_ext);
         for (spherical_index i = lms_ext.initial(); lms_ext.contains(i); ++i)
         {
             a.at(i) = (i == ai ? 1 : 0);
@@ -157,8 +157,8 @@ int main()
     if (!test(f, SpinWeightedGaunt::neumann(gaunt, d, e, neumann_length), tolerance)) return EXIT_FAILURE;
 
     // Spin tests
-    if (!test(up, SpinWeightedSpherical::eth(serial_index), tolerance)) return EXIT_FAILURE;
-    if (!test(down, SpinWeightedSpherical::eth_bar(serial_index), tolerance)) return EXIT_FAILURE;
+    if (!test(up, SpinWeightedSpherical::edth(serial_index), tolerance)) return EXIT_FAILURE;
+    if (!test(down, SpinWeightedSpherical::edth_bar(serial_index), tolerance)) return EXIT_FAILURE;
 
     return EXIT_SUCCESS;
 }

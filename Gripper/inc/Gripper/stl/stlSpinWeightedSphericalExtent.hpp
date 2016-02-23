@@ -4,9 +4,10 @@
 #include <Gripper/stl/stlSpinWeightedSphericalIndex.hpp>    // Multipole::stl::SpinWeightedSpherical::Index
 
 // Standard C++ includes
-#include <cstddef>                  // std::size_t
-#include <initializer_list>         // std::initializer_list
-#include <ostream>                  // std::ostream
+#include <cassert>              // assert
+#include <cstddef>              // std::size_t
+#include <initializer_list>     // std::initializer_list
+#include <ostream>              // std::ostream
 
 
 namespace Multipole
@@ -84,7 +85,7 @@ namespace Multipole
 
                 /// <summary>Tests whether an index is inside the extent.</summary>
                 ///
-                bool contains(const index_type& index) const { return (index >= m_initial) && (index <= m_final) ? true : false; }
+                bool contains(const index_type& index) const { return (index >= _initial) && (index <= _final) ? true : false; }
 
             private:
 

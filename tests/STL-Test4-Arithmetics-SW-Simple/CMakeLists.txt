@@ -37,8 +37,8 @@ target_include_directories (${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/inc/
 set_target_properties (STL-Test4-Arithmetics-SW-Simple PROPERTIES FOLDER "Tests//STL")
 
 # Create source file groups for IDEs
-source_group ("Headers" FILES ${STL_Test4_Arithmetics-SW-Simple_HDRS})
-source_group ("Sources" FILES ${STL_Test4_Arithmetics-SW-Simple_SRCS})
+source_group ("Headers" FILES ${STL_Test4_Arithmetics_SW_Simple_HDRS})
+source_group ("Sources" FILES ${STL_Test4_Arithmetics_SW_Simple_SRCS})
 
 
 # Add CTest entry

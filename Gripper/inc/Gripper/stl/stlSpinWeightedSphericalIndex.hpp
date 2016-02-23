@@ -1,11 +1,12 @@
 #pragma once
 
 // Standard C++ includes
-#include <cstdlib>          // std::size_t
-#include <cstdint>          // std::int8_t
-#include <cassert>          // assert
-#include <initializer_list> // std::initializer_list
-#include <cmath>            // std::round, std::sqrt
+#include <cassert>              // assert
+#include <cstdlib>              // std::size_t
+#include <cstdint>              // std::int8_t
+#include <initializer_list>     // std::initializer_list
+#include <cmath>                // std::round, std::sqrt
+#include <ostream>              // std::ostream
 
 
 namespace Multipole

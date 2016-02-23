@@ -160,7 +160,7 @@ namespace Multipole
             };
 
 
-            /// <summary>Expression Template that applies applies the spin stepping operator (edth) to a series expansion.</summary>
+            /// <summary>Class representing the sparse matrix of cross-integrals of spherical harmonics, aka. Gaunt-coefficients.</summary>
             ///
             template <std::size_t L_Max, typename IT, typename VT>
             class Matrix : public MatrixTraits<L_Max, IT, VT>
@@ -684,7 +684,7 @@ namespace Multipole
                                    const PT percentile)
                 {
                     Spherical::Vector<E2::l_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type> running_x = rhs, temp;
-                    auto f_00_Y_00_inv = static_cast<typename E2::value_type>(1) / rhs.at(typename E2::index_type{ 0, 0, 0 });
+                    auto f_00_Y_00_inv = static_cast<typename E2::value_type>(1) / rhs.at(typename E2::index_type{ 0, 0 }); // TODO: WAS WRONG AND COMPILED WITH { 0, 0, 0 }
                     typename E2::value_type x_prime, sum, prev_sum;
                     PT deviation;
 

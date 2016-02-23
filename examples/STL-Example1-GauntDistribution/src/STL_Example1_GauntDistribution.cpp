@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
     std::cout << "Calculating gaunt spin-weighted Gaunt-matrix of L_max = " << static_cast<int>(L_max) << " and S_max = " << static_cast<int>(S_max) << std::endl;
     start = std::chrono::high_resolution_clock::now();
 
-    gaunt.calculate();
+    gaunt = gaunt_matrix(ext);
 
     end = std::chrono::high_resolution_clock::now();
     std::cout << "Count of non-zero elements = " << gaunt.size() << std::endl;

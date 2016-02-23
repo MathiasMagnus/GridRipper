@@ -80,7 +80,7 @@ int main()
     K_result = real_radial_coeff_vector(drho, rho_ext);
     k_result = complex_radial_coeff_vector(drho, rho_ext);
 
-    gaunt.calculate();
+    gaunt = gaunt_matrix(lms_ext);
     auto contract = [&](const auto& lhs,const auto& rhs) { return SpinWeightedGaunt::contract(gaunt, lhs, rhs); };
     auto divide = [&](const auto& lhs, const auto& rhs) { return SpinWeightedGaunt::neumann(gaunt, lhs, rhs, neumann_length); };
     auto real_cast = [&](const auto& val) { return SpinWeightedSpherical::real_cast(val); };
@@ -156,23 +156,23 @@ int main()
         kappa = divide(square_braces, two * state.get<K>());
 
         // Calculate K
-        K_curly_braces = contract(a, real_cast(SpinWeightedSpherical::eth(conjugate(state.get<k>())) + SpinWeightedSpherical::eth_bar(state.get<k>()))) - real_cast(contract(b, SpinWeightedSpherical::eth_bar(conjugate(state.get<k>()))) + contract(conjugate(b), SpinWeightedSpherical::eth(state.get<k>())));
+        K_curly_braces = contract(a, real_cast(SpinWeightedSpherical::edth(conjugate(state.get<k>())) + SpinWeightedSpherical::edth_bar(state.get<k>()))) - real_cast(contract(b, SpinWeightedSpherical::edth_bar(conjugate(state.get<k>()))) + contract(conjugate(b), SpinWeightedSpherical::edth(state.get<k>())));
         K_curly_mul_N = contract(one_per_two * N_kalap, K_curly_braces);
 
         F_K_second_term_round = contract(a, conjugate(state.get<k>())) - contract(conjugate(b), state.get<k>());
         F_K_second_term_round_cc = contract(a, state.get<k>()) - contract(b, conjugate(state.get<k>()));
-        F_K_second_term = real_cast(contract(F_K_second_term_round, SpinWeightedSpherical::eth(N_kalap)) + contract(F_K_second_term_round_cc, SpinWeightedSpherical::eth_bar(conjugate(N_kalap))));
+        F_K_second_term = real_cast(contract(F_K_second_term_round, SpinWeightedSpherical::edth(N_kalap)) + contract(F_K_second_term_round_cc, SpinWeightedSpherical::edth_bar(conjugate(N_kalap))));
         F_K_third_term = contract(kappa - one_per_two * state.get<K>(), K_kalap);
 
         // Calculate k
         k_round_braces = contract(a, state.get<k>()) - contract(b, conjugate(state.get<k>()));
         k_round_braces_cc = contract(a, conjugate(state.get<k>())) - contract(conjugate(b), state.get<k>());
-        k_square_braces = contract(k_round_braces, SpinWeightedSpherical::eth(state.get<k>())) + contract(k_round_braces_cc, SpinWeightedSpherical::eth(state.get<k>()));
-        k_curly_braces = contract(kappa, SpinWeightedSpherical::eth(state.get<K>())) - divide(k_square_braces, d);
+        k_square_braces = contract(k_round_braces, SpinWeightedSpherical::edth(state.get<k>())) + contract(k_round_braces_cc, SpinWeightedSpherical::edth(state.get<k>()));
+        k_curly_braces = contract(kappa, SpinWeightedSpherical::edth(state.get<K>())) - divide(k_square_braces, d);
         k_curly_mul_N = contract(N_kalap, k_curly_braces);
 
-        f_k_second_term = divide(one_per_two * SpinWeightedSpherical::eth(kappa_null), state.get<K>()) + contract(K_kalap, state.get<k>());
-        f_k = -contract(kappa - one_per_two * state.get<K>(), SpinWeightedSpherical::eth(N_kalap)) + contract(N_kalap, f_k_second_term);
+        f_k_second_term = divide(one_per_two * SpinWeightedSpherical::edth(kappa_null), state.get<K>()) + contract(K_kalap, state.get<k>());
+        f_k = -contract(kappa - one_per_two * state.get<K>(), SpinWeightedSpherical::edth(N_kalap)) + contract(N_kalap, f_k_second_term);
 
         return state_vector(
             divide(K_curly_mul_N, d) + divide(F_K_second_term, d) + contract(N_kalap, F_K_third_term),
