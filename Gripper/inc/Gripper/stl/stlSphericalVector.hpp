@@ -10,6 +10,7 @@
 #include <functional>               // std::reference_wrapper, std::ref, std::cref
 #include <vector>                   // std::vector
 #include <type_traits>              // std::result_of
+#include <complex>                  // std::complex
 
 
 namespace Multipole
@@ -360,7 +361,7 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename ConstExpression<ConstView<L_Max, P, IT, VT>, L_Max, P, IT, VT>;
+                using expression_type = ConstExpression<ConstView<L_Max, P, IT, VT>, L_Max, P, IT, VT>;
 
                 // Common type aliases
 
@@ -461,7 +462,7 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename Expression<View<L_Max, P, IT, VT>, L_Max, P, IT, VT>;
+                using expression_type = Expression<View<L_Max, P, IT, VT>, L_Max, P, IT, VT>;
 
                 // Common type aliases
 
@@ -578,8 +579,8 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename ConstExpression<Id<E>, E::l_max, E::parity, typename E::index_internal_type, typename E::value_type>;
-                using outer_expression_type = typename ConstExpression<E, E::l_max, E::parity, typename E::index_internal_type, typename E::value_type>;
+                using expression_type = ConstExpression<Id<E>, E::l_max, E::parity, typename E::index_internal_type, typename E::value_type>;
+                using outer_expression_type = ConstExpression<E, E::l_max, E::parity, typename E::index_internal_type, typename E::value_type>;
 
                 // Common type aliases
 
@@ -643,7 +644,7 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename ConstExpression<Func<E, F>, E::l_max, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::index_type)>::type>;
+                using expression_type = ConstExpression<Func<E, F>, E::l_max, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::index_type)>::type>;
 
                 // Common type alises
 
@@ -711,8 +712,8 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename ConstExpression<Map<E, F>, E::l_max, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::value_type)>::type>;
-                using outer_expression_type = typename ConstExpression<E, E::l_max, E::parity, typename E::index_internal_type, typename E::value_type>;
+                using expression_type = ConstExpression<Map<E, F>, E::l_max, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::value_type)>::type>;
+                using outer_expression_type = ConstExpression<E, E::l_max, E::parity, typename E::index_internal_type, typename E::value_type>;
 
                 // Common type aliases
 
@@ -779,9 +780,9 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename ConstExpression<Zip<E1, E2, F>, E1::l_max, E1::parity, typename E1::index_internal_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>;
-                using outer_expression_type1 = typename ConstExpression<E1, E1::l_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>;
-                using outer_expression_type2 = typename ConstExpression<E2, E2::l_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>;
+                using expression_type = ConstExpression<Zip<E1, E2, F>, E1::l_max, E1::parity, typename E1::index_internal_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>;
+                using outer_expression_type1 = ConstExpression<E1, E1::l_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>;
+                using outer_expression_type2 = ConstExpression<E2, E2::l_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>;
 
                 // Common typedefs
 

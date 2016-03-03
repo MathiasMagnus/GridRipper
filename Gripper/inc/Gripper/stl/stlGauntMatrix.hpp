@@ -349,7 +349,7 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename ConstExpression<ConstView<L_Max, IT, VT>, L_Max, IT, VT>;
+                using expression_type = ConstExpression<ConstView<L_Max, IT, VT>, L_Max, IT, VT>;
 
                 // Lattice type aliases
 

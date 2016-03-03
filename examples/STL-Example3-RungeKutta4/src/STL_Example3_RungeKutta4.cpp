@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
     std::cout << "Calculation took " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << " sec\n" << std::endl;
 
     // Initialize state vector
-    for (auto& coeff : c) coeff = 1;
+    for (auto i = c.extent().initial(); c.extent().contains(i); ++i) c.at(i) = 1;
     a = 1;
     b = 0.01f;
     dt = 0.1f;
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
         return state_vector(
             std::exp(-b * state.get<0>()),
             std::exp(-b * SpinWeightedGaunt::contract(gaunt, state.get<1>(), state.get<1>())),
-            eth_bar(eth(state.get<2>())));
+            edth_bar(edth(state.get<2>())));
     });
 
     // Integrate given equation

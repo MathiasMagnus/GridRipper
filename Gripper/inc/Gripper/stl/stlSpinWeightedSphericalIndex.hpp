@@ -85,7 +85,7 @@ namespace Multipole
                 Index(std::initializer_list<value_type> init)
                 {
                     //static_assert(init.size() == 3, "Initializer-list of Multipole::stl::SpinWeightedSpherical::Index must have 3 elements: {l, m, s}");
-                    assert(init.size() == 3);
+                    //assert(init.size() == 3);
 
                     l = *init.begin();
                     m = *(init.begin() + 1);

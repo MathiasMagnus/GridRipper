@@ -372,7 +372,7 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename ConstExpression<ConstView<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>;
+                using expression_type = ConstExpression<ConstView<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>;
 
                 // Common type aliases
 
@@ -474,7 +474,7 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename Expression<View<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>;
+                using expression_type = Expression<View<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>;
 
                 // Common type aliases
 
@@ -535,7 +535,7 @@ namespace Multipole
 
                 /// <summary>Constructs a <c>View</c> from a <c>Vector</c>.</summary>
                 ///
-                View(vector_type& v) : _v(std::ref(v)) {}
+                explicit View(vector_type& v) : _v(std::ref(v)) {}
 
                 // ConstSTL interface
 
@@ -592,8 +592,8 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename ConstExpression<Id<E>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>;
-                using outer_expression_type = typename ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>;
+                using expression_type = ConstExpression<Id<E>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>;
+                using outer_expression_type = E;
 
                 // Common type aliases
 
@@ -660,7 +660,7 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename ConstExpression<Func<E, F>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>;
+                using expression_type = ConstExpression<Func<E, F>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>;
 
                 // Common type alises
 
@@ -731,8 +731,8 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename ConstExpression<Map<E, F>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::value_type)>::type>;
-                using outer_expression_type = typename ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>;
+                using expression_type = ConstExpression<Map<E, F>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::value_type)>::type>;
+                using outer_expression_type = E;
 
                 // Common type aliases
 
@@ -802,9 +802,9 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename ConstExpression<Zip<E1, E2, F>, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>;
-                using outer_expression_type1 = typename ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>;
-                using outer_expression_type2 = typename ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>;
+                using expression_type = ConstExpression<Zip<E1, E2, F>, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>;
+                using outer_expression_type1 = E1;
+                using outer_expression_type2 = E2;
 
                 // Common typedefs
 
@@ -835,9 +835,10 @@ namespace Multipole
                     const F& f) : _u(u), _v(v), _f(f)
                 {
                     static_assert(E1::l_max == E2::l_max, "SpinWeightedSpherical::Zip(l_max value mismatch)");
+                    static_assert(E1::s_max == E2::s_max, "SpinWeightedSpherical::Zip(s_max value mismatch)");
                     static_assert(E1::parity == E2::parity, "SpinWeightedSpherical::Zip(parity value mismatch)");
 
-                    assert(u.extent() == v.extent());
+                    assert(_u.extent() == _v.extent());
                 }
 
                 // ConstSTL interface
@@ -883,6 +884,12 @@ namespace Multipole
 
             namespace impl
             {
+                template <typename VT> struct realify;
+                template <> struct realify<float> { using type = float; };
+                template <> struct realify<double> { using type = double; };
+                template <> struct realify<std::complex<float>> { using type = float; };
+                template <> struct realify<std::complex<double>> { using type = double; };
+
                 /// <summary>Unimplemented Exression Template of the spin stepping edth operator.</summary>
                 ///
                 template <typename S> struct SpinStepper;
@@ -891,12 +898,6 @@ namespace Multipole
                 ///
                 template <> struct SpinStepper<Spin::Up>
                 {
-                    template <typename VT> struct realify;
-                    template <> struct realify<float> { using type = float; };
-                    template <> struct realify<double> { using type = double; };
-                    template <> struct realify<std::complex<float>> { using type = float; };
-                    template <> struct realify<std::complex<double>> { using type = double; };
-
                     template <typename E>
                     static auto at(const E& e, const typename E::index_type& i)
                     {
@@ -921,12 +922,6 @@ namespace Multipole
                 ///
                 template <> struct SpinStepper<Spin::Down>
                 {
-                    template <typename VT> struct realify;
-                    template <> struct realify<float> { using type = float; };
-                    template <> struct realify<double> { using type = double; };
-                    template <> struct realify<std::complex<float>> { using type = float; };
-                    template <> struct realify<std::complex<double>> { using type = double; };
-
                     template <typename E>
                     static auto at(const E& e, const typename E::index_type& i)
                     {
@@ -958,8 +953,8 @@ namespace Multipole
 
                 // Expression type aliases
 
-                using expression_type = typename ConstExpression<Edth<E, S>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>;
-                using outer_expression_type = typename ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>;
+                using expression_type = ConstExpression<Edth<E, S>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>;
+                using outer_expression_type = E;
 
                 // Common typedefs
 
@@ -1024,8 +1019,8 @@ namespace Multipole
             template <typename E1, typename E2, typename F>
             auto zip(const ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& u, const ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& v, const F& f) { return Zip<E1, E2, F>(u, v, f); }
 
-            template <Parity P, typename E>
-            auto parity(const ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Par<E, P>(u); }
+            //template <Parity P, typename E>
+            //auto parity(const ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Par<E, P>(u); }
 
             namespace impl
             {

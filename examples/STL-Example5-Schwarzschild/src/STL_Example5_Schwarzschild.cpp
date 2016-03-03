@@ -10,9 +10,9 @@ int main()
     using complex = std::complex<real>; // Type used to represent complex values
     constexpr integral L_max = 3;       // Maximum multipole values for series expansion
     constexpr integral S_max = 3;       // Maximum spin values for series expansion
-    const real drho = 0.05f;            // Separation of rho coordinates
+    const real drho = 0.25f;            // Separation of rho coordinates
     const integral rho_min = 32;        // Coordinate # of innermost lattice site
-    const integral rho_max = 512;       // Coordinate # of outermost lattice site
+    const integral rho_max = 33;        // Coordinate # of outermost lattice site
     const integral rho_n = 32;          // Coordinate # to start integration from
     const real M = 100.f;               // Black hole mass param
     const real neumann_length = 0.001f; // Neumann-series expansion precision
@@ -134,9 +134,10 @@ int main()
     }
 
     // Initialize solver
-    rk4.setLHS(state_vector(K_initial, k_initial));
-    rk4.setEquationSystem([&](const state_vector& state)
+    rk4.lhs() = state_vector(K_initial, k_initial);
+    rk4.equation() = [&](state_vector& result, const state_vector& state)
     {
+        std::cout << "update_constants" << std::endl;
         update_constants(rho);
 
         //
@@ -144,7 +145,7 @@ int main()
         //       of costly operations if their elements are accessed multiple times. Contractions are both costly and
         //       one element will be accessed multiple times by subsequent contractions.
         //
-
+        std::cout << "Calculate kappa" << std::endl;
         // Calculate kappa
         k_sq = contract(state.get<k>(), state.get<k>());
         K_sq = contract(state.get<K>(), state.get<K>());
@@ -154,7 +155,7 @@ int main()
         square_braces = divide(round_braces, d) - one_per_two * K_sq - kappa_null;
 
         kappa = divide(square_braces, two * state.get<K>());
-
+        std::cout << "Calculate K" << std::endl;
         // Calculate K
         K_curly_braces = contract(a, real_cast(SpinWeightedSpherical::edth(conjugate(state.get<k>())) + SpinWeightedSpherical::edth_bar(state.get<k>()))) - real_cast(contract(b, SpinWeightedSpherical::edth_bar(conjugate(state.get<k>()))) + contract(conjugate(b), SpinWeightedSpherical::edth(state.get<k>())));
         K_curly_mul_N = contract(one_per_two * N_kalap, K_curly_braces);
@@ -163,7 +164,7 @@ int main()
         F_K_second_term_round_cc = contract(a, state.get<k>()) - contract(b, conjugate(state.get<k>()));
         F_K_second_term = real_cast(contract(F_K_second_term_round, SpinWeightedSpherical::edth(N_kalap)) + contract(F_K_second_term_round_cc, SpinWeightedSpherical::edth_bar(conjugate(N_kalap))));
         F_K_third_term = contract(kappa - one_per_two * state.get<K>(), K_kalap);
-
+        std::cout << "Calculate k" << std::endl;
         // Calculate k
         k_round_braces = contract(a, state.get<k>()) - contract(b, conjugate(state.get<k>()));
         k_round_braces_cc = contract(a, conjugate(state.get<k>())) - contract(conjugate(b), state.get<k>());
@@ -173,12 +174,13 @@ int main()
 
         f_k_second_term = divide(one_per_two * SpinWeightedSpherical::edth(kappa_null), state.get<K>()) + contract(K_kalap, state.get<k>());
         f_k = -contract(kappa - one_per_two * state.get<K>(), SpinWeightedSpherical::edth(N_kalap)) + contract(N_kalap, f_k_second_term);
+        std::cout << "Calculate result" << std::endl;
 
-        return state_vector(
+        result = PDE::make_equation(
             divide(K_curly_mul_N, d) + divide(F_K_second_term, d) + contract(N_kalap, F_K_third_term),
             -divide(k_curly_mul_N, state.get<K>()) - f_k
             );
-    });
+    };
 
     end = timer::now(); std::cout << "done. " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
 
@@ -188,11 +190,12 @@ int main()
     // Outbound integration
     for (radial_index r = rho_n; rho_ext.contains(r); ++r)
     {
+        std::cout << "rho = " << rho << std::endl;
         rk4.iterate(+drho);
         rho += drho;
 
-        K_result.at(r) = rk4.getLHS().get<K>();
-        k_result.at(r) = rk4.getLHS().get<k>();
+        K_result.at(r) = rk4.lhs().get<K>();
+        k_result.at(r) = rk4.lhs().get<k>();
     }
     /*
     // Inbound integration

@@ -70,7 +70,7 @@ namespace Multipole
                 ///
                 Extent(std::initializer_list<index_type> init) : _initial(*(init.begin())), _final(*(init.begin() + 1))
                 {
-                    static_assert(init.size() == 2, "Size of std::initializer_list<Index> to Multipole::stl::SpinWeightedSpherical::Extent must be 2");
+                    //static_assert(init.size() == 2, "Size of std::initializer_list<Index> to Multipole::stl::SpinWeightedSpherical::Extent must be 2");
                 
                     assert(_initial <= _final);
                 }
