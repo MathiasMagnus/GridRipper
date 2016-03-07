@@ -12,7 +12,7 @@ int main()
     constexpr integral S_max = 3;       // Maximum spin values for series expansion
     const real drho = 0.25f;            // Separation of rho coordinates
     const integral rho_min = 32;        // Coordinate # of innermost lattice site
-    const integral rho_max = 33;        // Coordinate # of outermost lattice site
+    const integral rho_max = 40;        // Coordinate # of outermost lattice site
     const integral rho_n = 32;          // Coordinate # to start integration from
     const real M = 100.f;               // Black hole mass param
     const real neumann_length = 0.001f; // Neumann-series expansion precision

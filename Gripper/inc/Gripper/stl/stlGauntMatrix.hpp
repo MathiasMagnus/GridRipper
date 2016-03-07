@@ -678,10 +678,10 @@ namespace Multipole
                           typename E2,
                           typename G3,
                           typename PT>
-                const auto neumann(const G3& gaunt,
-                                   const E1& lhs,
-                                   const E2& rhs,
-                                   const PT percentile)
+                auto neumann(const G3& gaunt,
+                             const E1& lhs,
+                             const E2& rhs,
+                             const PT percentile)
                 {
                     Spherical::Vector<E2::l_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type> running_x = rhs, temp;
                     auto f_00_Y_00_inv = static_cast<typename E2::value_type>(1) / rhs.at(typename E2::index_type{ 0, 0 }); // TODO: WAS WRONG AND COMPILED WITH { 0, 0, 0 }

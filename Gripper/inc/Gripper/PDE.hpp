@@ -45,7 +45,7 @@ namespace PDE
 
         /// <summary>Obtain the N-th element of the state vector.</summary>
         ///
-        template <int N> const auto get() const { return static_cast<const E&>(*this).template get<N>(); }
+        template <int N> auto get() const { return static_cast<const E&>(*this).template get<N>(); }
 
         /// <summary>Obtan the number of elements in the state vector.</summary>
         ///
@@ -89,6 +89,7 @@ namespace PDE
             template <typename ET, typename... T>
             static void assign(std::tuple<T...>& dst, const ET& src)
             {
+                std::cout << "pde::assign<" << N << "> dst = " << std::get<N>(dst).extent() << " src = " << src.template get<N>().extent() << std::endl;
                 std::get<N>(dst) = src.template get<N>();
                 Assign<N - 1>::assign(dst, src);
             }
@@ -103,6 +104,7 @@ namespace PDE
             template <typename ET, typename... T>
             static void assign(std::tuple<T...>& dst, const ET& src)
             {
+                std::cout << "pde::assign<0> dst = " << std::get<0>(dst).extent() << " src = " << src.template get<0>().extent() << std::endl;
                 std::get<0>(dst) = src.template get<0>();
             }
         };
@@ -179,7 +181,7 @@ namespace PDE
 
         /// <summary>Obtain the N-th element of the state vector.</summary>
         ///
-        template <int N> const auto& get() const { return std::get<N>(m_values); }
+        template <int N> auto& get() const { return std::get<N>(m_values); }
 
         /// <summary>Obtan the number of elements in the state vector.</summary>
         ///
@@ -268,7 +270,7 @@ namespace PDE
 
         /// <summary>Obtain the N-th element of the state vector.</summary>
         ///
-        template <int N> const auto get() const { return _v.get().template get<N>(); }
+        template <int N> auto& get() const { return _v.get().template get<N>(); }
 
         /// <summary>Obtan the number of elements in the state vector.</summary>
         ///
@@ -334,7 +336,7 @@ namespace PDE
 
         /// <summary>Constructs a <c>ConstView</c> from a <c>StateVector</c>.</summary>
         ///
-        View(const vector_type& v) : _v(std::ref(v)) {}
+        View(vector_type& v) : _v(std::ref(v)) {}
 
         ///<summary>Constructs a state vector from the expression <c>expr</c>.</summary>
         ///
@@ -364,7 +366,7 @@ namespace PDE
 
         /// <summary>Obtain the N-th element of the state vector.</summary>
         ///
-        template <int N> const auto get() const { return _v.get().template get<N>(); }
+        template <int N> auto get() const { return _v.get().template get<N>(); }
 
         /// <summary>Obtan the number of elements in the state vector.</summary>
         ///
@@ -382,7 +384,7 @@ namespace PDE
     };
 
 
-    /// <summary>Expression Template that applies a unary function object to every element of a state vector.</summary>
+    /// <summary>Expression Template that evaluates function objects to yield elements of a state vector.</summary>
     ///
     template <typename... P>
     class Proxy : public ConstExpression<Proxy<P...>, P...>
@@ -400,13 +402,13 @@ namespace PDE
 
         // Constructors / Destructors / Assignment operators
 
-        Proxy(const P&... values) : _p(values...) {}
+        Proxy(P&&... values) : _p(values...) {}
 
         // ConstStateVector interface
 
         /// <summary>Obtain the N-th element of the state vector.</summary>
         ///
-        template <int N> const auto get() const { return std::get<N>(_p); }
+        template <int N> auto get() const { return std::get<N>(_p); }
 
         /// <summary>Obtan the number of elements in the state vector.</summary>
         ///
@@ -439,11 +441,25 @@ namespace PDE
         ///
         Map(const outer_expression_type& u, const F& f) : _u(u), _f(f) {}
 
+        // R-value bloat
+
+        /// <summary>Constructs a <c>Map</c> from an expression <c>u</c> and a function object <c>f</c>.</summary>
+        ///
+        Map(outer_expression_type&& u, const F& f) : _u(std::forward<outer_expression_type>(u)), _f(f) {}
+
+        /// <summary>Constructs a <c>Map</c> from an expression <c>u</c> and a function object <c>f</c>.</summary>
+        ///
+        Map(const outer_expression_type& u, F&& f) : _u(u), _f(std::forward<F>(f)) {}
+
+        /// <summary>Constructs a <c>Map</c> from an expression <c>u</c> and a function object <c>f</c>.</summary>
+        ///
+        Map(outer_expression_type&& u, F&& f) : _u(std::forward<outer_expression_type>(u)), _f(std::forward<F>(f)) {}
+
         // ConstStateVector interface
 
         /// <summary>Obtain the N-th element of the state vector.</summary>
         ///
-        template <int N> const auto get() const { return _f(_u.template get<N>()); }
+        template <int N> auto get() const { return _f(_u.template get<N>()); }
 
         /// <summary>Obtan the number of elements in the state vector.</summary>
         ///
@@ -480,11 +496,41 @@ namespace PDE
         ///
         Zip(const outer_expression_type1& u, const outer_expression_type2& v, const F& f) : _u(u), _v(v), _f(f) {}
 
+        // R-value bloat
+
+        /// <summary>Constructs a <c>Zip</c> from two possibly varying expressions <c>u</c> and <c>v</c> and a function object <c>f</c>.</summary>
+        ///
+        Zip(outer_expression_type1&& u, const outer_expression_type2& v, const F& f) : _u(std::forward<outer_expression_type1>(u)), _v(v), _f(f) {}
+
+        /// <summary>Constructs a <c>Zip</c> from two possibly varying expressions <c>u</c> and <c>v</c> and a function object <c>f</c>.</summary>
+        ///
+        Zip(const outer_expression_type1& u, outer_expression_type2&& v, const F& f) : _u(u), _v(std::forward<outer_expression_type2>(v)), _f(f) {}
+
+        /// <summary>Constructs a <c>Zip</c> from two possibly varying expressions <c>u</c> and <c>v</c> and a function object <c>f</c>.</summary>
+        ///
+        Zip(outer_expression_type1&& u, outer_expression_type2&& v, const F& f) : _u(std::forward<outer_expression_type1>(u)), _v(std::forward<outer_expression_type2>(v)), _f(f) {}
+
+        /// <summary>Constructs a <c>Zip</c> from two possibly varying expressions <c>u</c> and <c>v</c> and a function object <c>f</c>.</summary>
+        ///
+        Zip(const outer_expression_type1& u, const outer_expression_type2& v, F&& f) : _u(u), _v(v), _f(std::forward<F>(f)) {}
+
+        /// <summary>Constructs a <c>Zip</c> from two possibly varying expressions <c>u</c> and <c>v</c> and a function object <c>f</c>.</summary>
+        ///
+        Zip(outer_expression_type1&& u, const outer_expression_type2& v, F&& f) : _u(std::forward<outer_expression_type1>(u)), _v(v), _f(std::forward<F>(f)) {}
+
+        /// <summary>Constructs a <c>Zip</c> from two possibly varying expressions <c>u</c> and <c>v</c> and a function object <c>f</c>.</summary>
+        ///
+        Zip(const outer_expression_type1& u, outer_expression_type2&& v, F&& f) : _u(u), _v(std::forward<outer_expression_type2>(v)), _f(std::forward<F>(f)) {}
+
+        /// <summary>Constructs a <c>Zip</c> from two possibly varying expressions <c>u</c> and <c>v</c> and a function object <c>f</c>.</summary>
+        ///
+        Zip(outer_expression_type1&& u, outer_expression_type2&& v, F&& f) : _u(std::forward<outer_expression_type1>(u)), _v(std::forward<outer_expression_type2>(v)), _f(std::forward<F>(f)) {}
+
         // ConstStateVector interface
 
         /// <summary>Obtain the N-th element of the state vector.</summary>
         ///
-        template <int N> const auto get() const { return _f(_u.template get<N>(), _v.template get<N>()); }
+        template <int N> auto get() const { return _f(_u.template get<N>(), _v.template get<N>()); }
 
         /// <summary>Obtan the number of elements in the state vector.</summary>
         ///
@@ -561,13 +607,7 @@ namespace PDE
             /// <summary>Obtain the equation of the right-hand side stored within the solver.</summary>
             ///
             const equation_type& equation() const { return m_func; }
-            /*
-            void setLHS(StateVector<States...>&& lhs_in) { m_lhs = lhs_in; }
-            const StateVector<States...>& getLHS() const { return m_lhs; }
-            
-            void setEquationSystem(std::function<StateVector<States...>(const StateVector<States...>&)> evaluate) { m_func = evaluate; }
-            std::function<StateVector<States...>(const StateVector<States...>&)> getEquationSystem() { return m_func; }
-            */
+
             /// <summary>Iterate over the indepependent variable of size dt.</summary>
             ///
             floating_type iterate(const floating_type dt)
@@ -583,11 +623,19 @@ namespace PDE
             {
                 m_func(m_k.at(k1), m_lhs);
 
-                m_func(m_k.at(k2), tmp = m_lhs + static_cast<floating_type>(0.5) * dt * m_k.at(k1));
+                std::cout << "eval k2" << std::endl;
 
-                m_func(m_k.at(k3), tmp = m_lhs + static_cast<floating_type>(0.5) * dt * m_k.at(k2));
+                m_func(m_k.at(k2), tmp = m_lhs + (static_cast<floating_type>(0.5) * dt) * m_k.at(k1));
 
-                m_func(m_k.at(k4), tmp = m_lhs + static_cast<floating_type>(1.0) * dt * m_k.at(k3));
+                std::cout << "eval k3" << std::endl;
+
+                m_func(m_k.at(k3), tmp = m_lhs + (static_cast<floating_type>(0.5) * dt) * m_k.at(k2));
+
+                std::cout << "eval k4" << std::endl;
+
+                m_func(m_k.at(k4), tmp = m_lhs + (static_cast<floating_type>(1.0) * dt) * m_k.at(k3));
+
+                std::cout << "eval new lhs" << std::endl;
 
                 m_lhs = m_lhs + (dt / static_cast<floating_type>(6.0))*(m_k.at(k1) + static_cast<floating_type>(2.0) * (m_k.at(k2) + m_k.at(k3)) + m_k.at(k4));
 
@@ -641,14 +689,25 @@ namespace PDE
 
     } // namespace RK4
 
-    template <typename E, typename F, typename... VT>
-    auto map(const ConstExpression<E, VT...>& u, const F& f) { return Map<E, F, VT...>(u, f); }
+    template <typename E, typename F, typename... VT> auto map(const ConstExpression<E, VT...>& u, const F& f) { return Map<E, F, VT...>(u, f); }
 
-    template <typename E1, typename E2, typename F, typename... VT>
-    auto zip(const ConstExpression<E1, VT...>& u, const ConstExpression<E2, VT...>& v, const F& f) { return Zip<E1, E2, F, VT...>(u, v, f); }
+    template <typename E1, typename E2, typename F, typename... VT> auto zip(const ConstExpression<E1, VT...>& u, const ConstExpression<E2, VT...>& v, const F& f) { return Zip<E1, E2, F, VT...>(u, v, f); }
 
-    template <typename... P>
-    auto make_equation(const P&... equations) { return Proxy<P...>(equations...); }
+    template <typename... P> auto make_equation(P&&... equations) { return Proxy<P...>(std::forward<P>(equations)...); }
+
+    // R-value bloat
+
+    template <typename E, typename F, typename... VT> auto map(ConstExpression<E, VT...>&& u, const F& f) { return Map<E, F, VT...>(std::forward<ConstExpression<E, VT...>>(u), f); }
+    template <typename E, typename F, typename... VT> auto map(const ConstExpression<E, VT...>& u, F&& f) { return Map<E, F, VT...>(u, std::forward<F>(f)); }
+    template <typename E, typename F, typename... VT> auto map(ConstExpression<E, VT...>&& u, F&& f) { return Map<E, F, VT...>(std::forward<ConstExpression<E, VT...>>(u), std::forward<F>(f)); }
+
+    template <typename E1, typename E2, typename F, typename... VT> auto zip(ConstExpression<E1, VT...>&& u, const ConstExpression<E2, VT...>& v, const F& f) { return Zip<E1, E2, F, VT...>(std::forward<ConstExpression<E1, VT...>>(u), v, f); }
+    template <typename E1, typename E2, typename F, typename... VT> auto zip(const ConstExpression<E1, VT...>& u, ConstExpression<E2, VT...>&& v, const F& f) { return Zip<E1, E2, F, VT...>(u, std::forward<ConstExpression<E2, VT...>>(v), f); }
+    template <typename E1, typename E2, typename F, typename... VT> auto zip(ConstExpression<E1, VT...>&& u, ConstExpression<E2, VT...>&& v, const F& f) { return Zip<E1, E2, F, VT...>(std::forward<ConstExpression<E1, VT...>>(u), std::forward<ConstExpression<E2, VT...>>(v), f); }
+    template <typename E1, typename E2, typename F, typename... VT> auto zip(const ConstExpression<E1, VT...>& u, const ConstExpression<E2, VT...>& v, F&& f) { return Zip<E1, E2, F, VT...>(u, v, std::forward<F>(f)); }
+    template <typename E1, typename E2, typename F, typename... VT> auto zip(ConstExpression<E1, VT...>&& u, const ConstExpression<E2, VT...>& v, F&& f) { return Zip<E1, E2, F, VT...>(std::forward<ConstExpression<E1, VT...>>(u), v, f); }
+    template <typename E1, typename E2, typename F, typename... VT> auto zip(const ConstExpression<E1, VT...>& u, ConstExpression<E2, VT...>&& v, F&& f) { return Zip<E1, E2, F, VT...>(u, std::forward<ConstExpression<E2, VT...>>(v), f); }
+    template <typename E1, typename E2, typename F, typename... VT> auto zip(ConstExpression<E1, VT...>&& u, ConstExpression<E2, VT...>&& v, F&& f) { return Zip<E1, E2, F, VT...>(std::forward<ConstExpression<E1, VT...>>(u), std::forward<ConstExpression<E2, VT...>>(v), f); }
     
 } // namespace PDE
 
@@ -657,25 +716,46 @@ namespace PDE
 ///////////////////////////////////////////
 
 // Unary
-template <typename E, typename... T> const auto operator+(const PDE::ConstExpression<E, T...>& v) { return PDE::map(v, [=](auto&& val) { return +val; }); }
-template <typename E, typename... T> const auto operator-(const PDE::ConstExpression<E, T...>& v) { return PDE::map(v, [=](auto&& val) { return -val; }); }
-template <typename... T> const auto operator+(const PDE::StateVector<T...>& v) { return PDE::map(PDE::ConstView<T...>(v), [=](auto&& val) { return +val; }); }
-template <typename... T> const auto operator-(const PDE::StateVector<T...>& v) { return PDE::map(PDE::ConstView<T...>(v), [=](auto&& val) { return -val; }); }
+template <typename E, typename... T> auto operator+(const PDE::ConstExpression<E, T...>& v) { return PDE::map(v, [=](auto&& val) { return +val; }); }
+template <typename E, typename... T> auto operator-(const PDE::ConstExpression<E, T...>& v) { return PDE::map(v, [=](auto&& val) { return -val; }); }
+template <typename... T> auto operator+(const PDE::StateVector<T...>& v) { return PDE::map(PDE::ConstView<T...>(v), [=](auto&& val) { return +val; }); }
+template <typename... T> auto operator-(const PDE::StateVector<T...>& v) { return PDE::map(PDE::ConstView<T...>(v), [=](auto&& val) { return -val; }); }
 
 // Binary
-template <typename E1, typename E2, typename... T> const auto operator+(const PDE::ConstExpression<E1, T...>& u, const PDE::ConstExpression<E2, T...>& v) { return PDE::zip(u, v, [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
-template <typename E2, typename... T> const auto operator+(const PDE::StateVector<T...>& u, const PDE::ConstExpression<E2, T...>& v) { return PDE::zip(PDE::ConstView<T...>(u), v, [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
-template <typename E1, typename... T> const auto operator+(const PDE::ConstExpression<E1, T...>& u, const PDE::StateVector<T...>& v) { return PDE::zip(u, PDE::ConstView<T...>(v), [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
-template <typename... T> const auto operator+(const PDE::StateVector<T...>& u, const PDE::StateVector<T...>& v) { return PDE::zip(PDE::ConstView<T...>(u), PDE::ConstView<T...>(v), [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
-template <typename E1, typename E2, typename... T> const auto operator-(const PDE::ConstExpression<E1, T...>& u, const PDE::ConstExpression<E2, T...>& v) { return PDE::zip(u, v, [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
-template <typename E2, typename... T> const auto operator-(const PDE::StateVector<T...>& u, const PDE::ConstExpression<E2, T...>& v) { return PDE::zip(PDE::ConstView<T...>(u), v, [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
-template <typename E1, typename... T> const auto operator-(const PDE::ConstExpression<E1, T...>& u, const PDE::StateVector<T...>& v) { return PDE::zip(u, PDE::ConstView<T...>(v), [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
-template <typename... T> const auto operator-(const PDE::StateVector<T...>& u, const PDE::StateVector<T...>& v) { return PDE::zip(PDE::ConstView<T...>(u), PDE::ConstView<T...>(v), [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
+template <typename E1, typename E2, typename... T> auto operator+(const PDE::ConstExpression<E1, T...>& u, const PDE::ConstExpression<E2, T...>& v) { return PDE::zip(u, v, [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
+template <typename E1, typename E2, typename... T> auto operator-(const PDE::ConstExpression<E1, T...>& u, const PDE::ConstExpression<E2, T...>& v) { return PDE::zip(u, v, [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
+template <typename E1, typename... T> auto operator+(const PDE::ConstExpression<E1, T...>& u, const PDE::StateVector<T...>& v) { return PDE::zip(u, PDE::ConstView<T...>(v), [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
+template <typename E1, typename... T> auto operator-(const PDE::ConstExpression<E1, T...>& u, const PDE::StateVector<T...>& v) { return PDE::zip(u, PDE::ConstView<T...>(v), [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
+template <typename E2, typename... T> auto operator+(const PDE::StateVector<T...>& u, const PDE::ConstExpression<E2, T...>& v) { return PDE::zip(PDE::ConstView<T...>(u), v, [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
+template <typename E2, typename... T> auto operator-(const PDE::StateVector<T...>& u, const PDE::ConstExpression<E2, T...>& v) { return PDE::zip(PDE::ConstView<T...>(u), v, [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
+template <typename... T> auto operator+(const PDE::StateVector<T...>& u, const PDE::StateVector<T...>& v) { return PDE::zip(PDE::ConstView<T...>(u), PDE::ConstView<T...>(v), [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
+template <typename... T> auto operator-(const PDE::StateVector<T...>& u, const PDE::StateVector<T...>& v) { return PDE::zip(PDE::ConstView<T...>(u), PDE::ConstView<T...>(v), [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
 
-template <typename Scalar, typename E, typename... T> const auto operator*(const Scalar& alpha, const PDE::ConstExpression<E, T...>& v) { return PDE::map(v, [=](auto&& val) { return alpha * val; }); }
-template <typename Scalar, typename E, typename... T> const auto operator*(const PDE::ConstExpression<E, T...>& v, const Scalar& alpha) { return PDE::map(v, [=](auto&& val) { return alpha * val; }); }
-template <typename Scalar, typename... T> const auto operator*(const Scalar& alpha, const PDE::StateVector<T...>& v) { return PDE::map(PDE::ConstView<T...>(v), [=](auto&& val) { return alpha * val; }); }
-template <typename Scalar, typename... T> const auto operator*(const PDE::StateVector<T...>& v, const Scalar& alpha) { return PDE::map(PDE::ConstView<T...>(v), [=](auto&& val) { return alpha * val; }); }
+template <typename Scalar, typename E, typename... T> auto operator*(const Scalar& alpha, const PDE::ConstExpression<E, T...>& v) { return PDE::map(v, [=](auto&& val) { return alpha * val; }); }
+template <typename Scalar, typename E, typename... T> auto operator*(const PDE::ConstExpression<E, T...>& v, const Scalar& alpha) { return PDE::map(v, [=](auto&& val) { return alpha * val; }); }
+template <typename Scalar, typename... T> auto operator*(const Scalar& alpha, const PDE::StateVector<T...>& v) { return PDE::map(PDE::ConstView<T...>(v), [=](auto&& val) { return alpha * val; }); }
+template <typename Scalar, typename... T> auto operator*(const PDE::StateVector<T...>& v, const Scalar& alpha) { return PDE::map(PDE::ConstView<T...>(v), [=](auto&& val) { return alpha * val; }); }
 
-template <typename Scalar, typename E, typename... T> const auto operator/(const PDE::ConstExpression<E, T...>& v, const Scalar& alpha) { return PDE::map(v, [=](auto&& val) { return val / alpha; }); }
-template <typename Scalar, typename... T> const auto operator/(const PDE::StateVector<T...>& v, const Scalar& alpha) { return PDE::map(PDE::ConstView<T...>(v), [=](auto&& val) { return val / alpha; }); }
+template <typename Scalar, typename E, typename... T> auto operator/(const PDE::ConstExpression<E, T...>& v, const Scalar& alpha) { return PDE::map(v, [=](auto&& val) { return val / alpha; }); }
+template <typename Scalar, typename... T> auto operator/(const PDE::StateVector<T...>& v, const Scalar& alpha) { return PDE::map(PDE::ConstView<T...>(v), [=](auto&& val) { return val / alpha; }); }
+
+// R-value bloat
+template <typename E, typename... T> auto operator+(PDE::ConstExpression<E, T...>&& v) { return PDE::map(std::forward<PDE::ConstExpression<E, T...>>(v), [=](auto&& val) { return +val; }); }
+template <typename E, typename... T> auto operator-(PDE::ConstExpression<E, T...>&& v) { return PDE::map(std::forward<PDE::ConstExpression<E, T...>>(v), [=](auto&& val) { return -val; }); }
+
+// R-value bloat
+template <typename E1, typename E2, typename... T> auto operator+(PDE::ConstExpression<E1, T...>&& u, const PDE::ConstExpression<E2, T...>& v) { return PDE::zip(std::forward<PDE::ConstExpression<E1, T...>>(u), v, [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
+template <typename E1, typename E2, typename... T> auto operator-(PDE::ConstExpression<E1, T...>&& u, const PDE::ConstExpression<E2, T...>& v) { return PDE::zip(std::forward<PDE::ConstExpression<E1, T...>>(u), v, [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
+template <typename E1, typename E2, typename... T> auto operator+(const PDE::ConstExpression<E1, T...>& u, PDE::ConstExpression<E2, T...>&& v) { return PDE::zip(u, std::forward<PDE::ConstExpression<E2, T...>>(v), [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
+template <typename E1, typename E2, typename... T> auto operator-(const PDE::ConstExpression<E1, T...>& u, PDE::ConstExpression<E2, T...>&& v) { return PDE::zip(u, std::forward<PDE::ConstExpression<E2, T...>>(v), [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
+template <typename E1, typename E2, typename... T> auto operator+(PDE::ConstExpression<E1, T...>&& u, PDE::ConstExpression<E2, T...>&& v) { return PDE::zip(std::forward<PDE::ConstExpression<E1, T...>>(u), std::forward<PDE::ConstExpression<E2, T...>>(v), [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
+template <typename E1, typename E2, typename... T> auto operator-(PDE::ConstExpression<E1, T...>&& u, PDE::ConstExpression<E2, T...>&& v) { return PDE::zip(std::forward<PDE::ConstExpression<E1, T...>>(u), std::forward<PDE::ConstExpression<E2, T...>>(v), [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
+template <typename E1, typename... T> auto operator+(PDE::ConstExpression<E1, T...>&& u, const PDE::StateVector<T...>& v) { return PDE::zip(std::forward<PDE::ConstExpression<E1, T...>>(u), PDE::ConstView<T...>(v), [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
+template <typename E1, typename... T> auto operator-(PDE::ConstExpression<E1, T...>&& u, const PDE::StateVector<T...>& v) { return PDE::zip(std::forward<PDE::ConstExpression<E1, T...>>(u), PDE::ConstView<T...>(v), [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
+template <typename E2, typename... T> auto operator+(const PDE::StateVector<T...>& u, PDE::ConstExpression<E2, T...>&& v) { return PDE::zip(PDE::ConstView<T...>(u), std::forward<PDE::ConstExpression<E2, T...>>(v), [](auto&& lhs, auto&& rhs) { return lhs + rhs; }); }
+template <typename E2, typename... T> auto operator-(const PDE::StateVector<T...>& u, PDE::ConstExpression<E2, T...>&& v) { return PDE::zip(PDE::ConstView<T...>(u), std::forward<PDE::ConstExpression<E2, T...>>(v), [](auto&& lhs, auto&& rhs) { return lhs - rhs; }); }
+
+template <typename Scalar, typename E, typename... T> auto operator*(const Scalar& alpha, PDE::ConstExpression<E, T...>&& v) { return PDE::map(std::forward<PDE::ConstExpression<E, T...>>(v), [=](auto&& val) { return alpha * val; }); }
+template <typename Scalar, typename E, typename... T> auto operator*(PDE::ConstExpression<E, T...>&& v, const Scalar& alpha) { return PDE::map(std::forward<PDE::ConstExpression<E, T...>>(v), [=](auto&& val) { return alpha * val; }); }
+
+template <typename Scalar, typename E, typename... T> auto operator/(PDE::ConstExpression<E, T...>&& v, const Scalar& alpha) { return PDE::map(std::forward<PDE::ConstExpression<E, T...>>(v), [=](auto&& val) { return val / alpha; }); }

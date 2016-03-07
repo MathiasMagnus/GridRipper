@@ -113,7 +113,7 @@ namespace Multipole
                 // ASSUMPTION: here we make the assumption that std::ostream& is some derivate of
                 //             a formatted console entity.
 
-                os << "[ " << static_cast<int>(extent.initial()) << ", " << static_cast<int>(extent.final()) << " ]";
+                os << "[ " << extent.initial() << ", " << extent.final() << " ]";
 
                 return os;
             }

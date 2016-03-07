@@ -751,10 +751,10 @@ namespace Multipole
                           typename E2,
                           typename G3,
                           typename PT>
-                const auto neumann(const ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& gaunt,
-                                   const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
-                                   const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
-                                   const PT percentile)
+                auto neumann(const ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& gaunt,
+                             const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
+                             const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
+                             const PT percentile)
                 {
                     SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type> running_x = rhs, temp;
                     auto f_00_Y_00_inv = static_cast<typename E2::value_type>(1) / rhs.at(typename E2::index_type{ 0, 0, 0 });
