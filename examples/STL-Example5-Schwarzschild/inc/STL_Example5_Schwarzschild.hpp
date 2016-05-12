@@ -1,3 +1,5 @@
+#pragma once
+
 // Gripper includes
 #include <Gripper/stl/stlMultipoleTypes.hpp>
 #include <Gripper/PDE.hpp>

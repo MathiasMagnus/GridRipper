@@ -13,20 +13,29 @@ int main(int argc, char* argv[])
     using vector = Radial::Vector<real, index, real>;
 
     // Declare variables
-    real dr;
+    real dr, tolerance;
     extent ext;
     vector vec;
 
     // Initialize variables
     dr = 0.1f;
+    tolerance = 1e-4f;
     ext = extent(0, 2047);
     vec = vector(dr, ext);
     auto r_sq = Radial::func(dr, ext, [](const index& i) { return static_cast<real>(i*i); });
+    auto ref = Radial::func(dr, ext, [](const index& i) { return static_cast<real>(2*i); });
 
     // Calculate a simple equation
     vec = derivate(-r_sq);
 
+    // Validate
+    int exit_code = EXIT_SUCCESS;
+
+    for (index r = ext.initial(); ext.contains(r); ++r)
+        if (std::abs(vec[r] - r_sq.at(r)) > tolerance)
+            exit_code = EXIT_FAILURE;
+
     std::cout << "Done." << std::endl;
 
-    return EXIT_SUCCESS;
+    return exit_code;
 }

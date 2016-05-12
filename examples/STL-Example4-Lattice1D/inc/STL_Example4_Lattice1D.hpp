@@ -3,7 +3,7 @@
 #include <cstdint>          // std::int32_t
 #include <iostream>         // std::cout
 #include <chrono>           // std::chrono::high_resolution_clock
-#include <cmath>            // std::exp
+#include <cmath>            // std::exp, std::abs
 
 #include <complex>
 

@@ -10,10 +10,10 @@ int main()
     using complex = std::complex<real>; // Type used to represent complex values
     constexpr integral L_max = 3;       // Maximum multipole values for series expansion
     constexpr integral S_max = 3;       // Maximum spin values for series expansion
-    const real drho = 0.25f;            // Separation of rho coordinates
-    const integral rho_min = 32;        // Coordinate # of innermost lattice site
-    const integral rho_max = 40;        // Coordinate # of outermost lattice site
-    const integral rho_n = 32;          // Coordinate # to start integration from
+    const real drho = 0.025f;           // Separation of rho coordinates
+    const integral rho_min = 120;        // Coordinate # of innermost lattice site
+    const integral rho_max = 200;        // Coordinate # of outermost lattice site
+    const integral rho_n = 120;          // Coordinate # to start integration from
     const real M = 100.f;               // Black hole mass param
     const real neumann_length = 0.001f; // Neumann-series expansion precision
 
@@ -50,8 +50,8 @@ int main()
     complex_coeff_vector k_initial, b;
     gaunt_matrix gaunt;
 
-    real_coeff_vector K_sq, k_k_bar, round_braces, square_braces, K_curly_braces, K_curly_mul_N, F_K_second_term, F_K_third_term;
-    complex_coeff_vector k_sq, k_bar_sq, F_K_second_term_round, F_K_second_term_round_cc, k_round_braces, k_round_braces_cc, k_square_braces, k_curly_braces, k_curly_mul_N, f_k, f_k_second_term;
+    real_coeff_vector K_sq, k_k_bar, round_braces, square_braces, K_curly_braces, K_curly_mul_N, F_K_second_term, F_K_third_term, neumann_temp1, neumann_temp2, kappa_wtf, K_curly_braces_wtf_lhs, K_curly_braces_wtf_rhs, K_final;
+    complex_coeff_vector k_sq, k_bar_sq, F_K_second_term_round, F_K_second_term_round_cc, k_round_braces, k_round_braces_cc, k_square_braces, k_curly_braces, k_curly_mul_N, f_k, f_k_second_term, k_final;
 
     solver rk4;
 
@@ -81,11 +81,11 @@ int main()
     k_result = complex_radial_coeff_vector(drho, rho_ext);
 
     gaunt = gaunt_matrix(lms_ext);
-    auto contract = [&](const auto& lhs,const auto& rhs) { return SpinWeightedGaunt::contract(gaunt, lhs, rhs); };
-    auto divide = [&](const auto& lhs, const auto& rhs) { return SpinWeightedGaunt::neumann(gaunt, lhs, rhs, neumann_length); };
+    auto contract = [&](const auto& lhs, const auto& rhs) { return SpinWeightedGaunt::contract(gaunt, lhs, rhs); };
+    auto divide = [&](const auto& lhs, const auto& rhs) { return SpinWeightedGaunt::neumann(gaunt, lhs, rhs, neumann_temp1, neumann_temp2, neumann_length); };
     auto real_cast = [&](const auto& val) { return SpinWeightedSpherical::real_cast(val); };
-    auto H = [&](const real& r) { return M / r; };
-    auto update_constants = [&](const real rho)
+    auto H = [&](const real r) { return M / r; };
+    auto update_constants = [contract, lms_ext, H, M, real_cast, one, two, eight, &N_kalap, &K_kalap, &kappa_null, &a, &b, &d](const real rho)
     {
         for (auto i = lms_ext.initial(); lms_ext.contains(i); ++i)
         {
@@ -116,7 +116,7 @@ int main()
     {
         if (i == spherical_index{ 0, 0, 0 })
         {
-            K_initial.at(i) = -four * M / (rho * rho * std::pow(one + two * H(rho), three_per_two)); // based on (3.36)
+            K_initial.at(i) = -four * M / (rho * rho * std::sqrt(one + two * H(rho))); // based on (3.36)
             k_initial.at(i) = 0; // based on (3.34)
         }
         else
@@ -132,12 +132,13 @@ int main()
         K_result.at(r) = real_coeff_vector(lms_ext);
         k_result.at(r) = complex_coeff_vector(lms_ext);
     }
+    K_result.at(rho_n) = K_initial;
+    k_result.at(rho_n) = k_initial;
 
     // Initialize solver
     rk4.lhs() = state_vector(K_initial, k_initial);
     rk4.equation() = [&](state_vector& result, const state_vector& state)
     {
-        std::cout << "update_constants" << std::endl;
         update_constants(rho);
 
         //
@@ -145,7 +146,8 @@ int main()
         //       of costly operations if their elements are accessed multiple times. Contractions are both costly and
         //       one element will be accessed multiple times by subsequent contractions.
         //
-        std::cout << "Calculate kappa" << std::endl;
+        using namespace SpinWeightedSpherical; // For edth/edth_bar operators
+
         // Calculate kappa
         k_sq = contract(state.get<k>(), state.get<k>());
         K_sq = contract(state.get<K>(), state.get<K>());
@@ -154,31 +156,41 @@ int main()
         round_braces = two * contract(a, k_k_bar) - real_cast(contract(b, k_bar_sq) + contract(conjugate(b), k_sq));
         square_braces = divide(round_braces, d) - one_per_two * K_sq - kappa_null;
 
-        kappa = divide(square_braces, two * state.get<K>());
-        std::cout << "Calculate K" << std::endl;
+        // NOTE: workaround of MSVC internal compiler error. "Simplify code around line..."
+        //
+        // ORIGINAL: kappa = divide(square_braces, two * state.get<K>());
+        //
+        kappa_wtf = two * state.get<K>();
+        kappa = divide(square_braces, kappa_wtf);
+
         // Calculate K
-        K_curly_braces = contract(a, real_cast(SpinWeightedSpherical::edth(conjugate(state.get<k>())) + SpinWeightedSpherical::edth_bar(state.get<k>()))) - real_cast(contract(b, SpinWeightedSpherical::edth_bar(conjugate(state.get<k>()))) + contract(conjugate(b), SpinWeightedSpherical::edth(state.get<k>())));
+        K_curly_braces_wtf_lhs = contract(a, real_cast(edth(conjugate(state.get<k>())) + edth_bar(state.get<k>())));
+        K_curly_braces_wtf_rhs = real_cast(contract(b, edth_bar(conjugate(state.get<k>()))) + contract(conjugate(b), edth(state.get<k>())));
+        K_curly_braces = K_curly_braces_wtf_lhs - K_curly_braces_wtf_rhs;
         K_curly_mul_N = contract(one_per_two * N_kalap, K_curly_braces);
 
         F_K_second_term_round = contract(a, conjugate(state.get<k>())) - contract(conjugate(b), state.get<k>());
         F_K_second_term_round_cc = contract(a, state.get<k>()) - contract(b, conjugate(state.get<k>()));
-        F_K_second_term = real_cast(contract(F_K_second_term_round, SpinWeightedSpherical::edth(N_kalap)) + contract(F_K_second_term_round_cc, SpinWeightedSpherical::edth_bar(conjugate(N_kalap))));
+        F_K_second_term = real_cast(contract(F_K_second_term_round, edth(N_kalap)) + contract(F_K_second_term_round_cc, edth_bar(conjugate(N_kalap))));
         F_K_third_term = contract(kappa - one_per_two * state.get<K>(), K_kalap);
-        std::cout << "Calculate k" << std::endl;
+
+        K_final = divide(K_curly_mul_N, d) + divide(F_K_second_term, d) + contract(N_kalap, F_K_third_term);
+
         // Calculate k
         k_round_braces = contract(a, state.get<k>()) - contract(b, conjugate(state.get<k>()));
         k_round_braces_cc = contract(a, conjugate(state.get<k>())) - contract(conjugate(b), state.get<k>());
-        k_square_braces = contract(k_round_braces, SpinWeightedSpherical::edth(state.get<k>())) + contract(k_round_braces_cc, SpinWeightedSpherical::edth(state.get<k>()));
-        k_curly_braces = contract(kappa, SpinWeightedSpherical::edth(state.get<K>())) - divide(k_square_braces, d);
+        k_square_braces = contract(k_round_braces, edth(state.get<k>())) + contract(k_round_braces_cc, edth(state.get<k>()));
+        k_curly_braces = contract(kappa, edth(state.get<K>())) - divide(k_square_braces, d);
         k_curly_mul_N = contract(N_kalap, k_curly_braces);
 
-        f_k_second_term = divide(one_per_two * SpinWeightedSpherical::edth(kappa_null), state.get<K>()) + contract(K_kalap, state.get<k>());
-        f_k = -contract(kappa - one_per_two * state.get<K>(), SpinWeightedSpherical::edth(N_kalap)) + contract(N_kalap, f_k_second_term);
-        std::cout << "Calculate result" << std::endl;
+        f_k_second_term = divide(one_per_two * edth(kappa_null), state.get<K>()) + contract(K_kalap, state.get<k>());
+        f_k = -contract(kappa - one_per_two * state.get<K>(), edth(N_kalap)) + contract(N_kalap, f_k_second_term);
+
+        k_final = -divide(k_curly_mul_N, state.get<K>()) - f_k;
 
         result = PDE::make_equation(
-            divide(K_curly_mul_N, d) + divide(F_K_second_term, d) + contract(N_kalap, F_K_third_term),
-            -divide(k_curly_mul_N, state.get<K>()) - f_k
+            K_final,
+            k_final
             );
     };
 
@@ -188,44 +200,89 @@ int main()
     std::cout << "Integrating... "; std::cout.flush(); start = timer::now();
 
     // Outbound integration
-    for (radial_index r = rho_n; rho_ext.contains(r); ++r)
+    for (radial_index r = rho_n + 1; rho_ext.contains(r); ++r)
     {
         std::cout << "rho = " << rho << std::endl;
         rk4.iterate(+drho);
+        /*{
+            std::stringstream file_name;
+            
+            file_name << "rk4_K_" << r << ".dat";
+            std::ofstream data_file(file_name.str().c_str(), std::ios::ate);
+
+            std::size_t lms_counter = 0;
+            for (auto lms = lms_ext.initial(); lms_ext.contains(lms); ++lms, ++lms_counter)
+            {
+                data_file <<
+                    lms_counter << "\t" <<
+                    rk4.m_k.at(0).get<K>().at(lms) << "\t" <<
+                    rk4.m_k.at(1).get<K>().at(lms) << "\t" <<
+                    rk4.m_k.at(2).get<K>().at(lms) << "\t" <<
+                    rk4.m_k.at(3).get<K>().at(lms) << std::endl;
+            }
+        }*/
         rho += drho;
 
         K_result.at(r) = rk4.lhs().get<K>();
         k_result.at(r) = rk4.lhs().get<k>();
     }
-    /*
+    
     // Inbound integration
-    rk4.setLHS(state_vector(K_initial, k_initial));
-    for (radial_index r = rho_n; rho_ext.contains(r); --r)
+    rk4.lhs() = state_vector(K_initial, k_initial);
+    for (radial_index r = rho_n - 1; rho_ext.contains(r); --r)
     {
+        std::cout << "rho = " << rho << std::endl;
         rk4.iterate(-drho);
         rho -= drho;
 
-        K_result.at(r) = rk4.getLHS().get<K>();
-        k_result.at(r) = rk4.getLHS().get<k>();
+        K_result.at(r) = rk4.lhs().get<K>();
+        k_result.at(r) = rk4.lhs().get<k>();
     }
-    */
+    
     end = timer::now(); std::cout << "done. " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
-
+    
     // Export data for plot
     std::cout << "Exporting... "; std::cout.flush(); start = timer::now();
 
-    std::ofstream data_file("output.dat", std::ios::ate);
+    {
+        std::stringstream file_name;
 
+        file_name << "K_" << rho_n << ".dat";
+        std::ofstream data_file(file_name.str().c_str(), std::ios::ate);
+
+        std::size_t lms_counter = 0;
+        for (auto lms = lms_ext.initial(); lms_ext.contains(lms); ++lms, ++lms_counter)
+        {
+            data_file << lms_counter << "\t" << K_initial.at(lms) << "\t" << k_initial.at(lms) << std::endl;
+        }
+    }
+
+    for (radial_index r = rho_ext.initial(); rho_ext.contains(r); ++r)
+    {
+        std::stringstream file_name;
+
+        file_name << "K_" << r << ".dat";
+        std::ofstream data_file(file_name.str().c_str(), std::ios::ate);
+
+        std::size_t lms_counter = 0;
+        for (auto lms = lms_ext.initial(); lms_ext.contains(lms); ++lms, ++lms_counter)
+        {
+            data_file << lms_counter << "\t" << K_result.at(r).at(lms) << "\t" << k_result.at(r).at(lms) << std::endl;
+        }
+    }
+
+    std::ofstream data_file("output.dat", std::ios::ate);
+    
     for (radial_index r = rho_ext.initial(); rho_ext.contains(r); ++r)
     {
         data_file <<
             r * drho << "\t" <<
             K_result.at(r).at(spherical_index{ 0, 0, 0 }) << "\t" <<
-            k_result.at(r).at(spherical_index{ 0, 0, 0 }) << " \t" <<
+            //k_result.at(r).at(spherical_index{ 0, 0, 0 }) << " \t" <<
             -four * M / (std::pow(r * drho, 2) * std::sqrt(one + 2 * H(r * drho))) << std::endl;
     }
-
+    
     end = timer::now(); std::cout << "done. " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
-
+    
     return EXIT_SUCCESS;
 }
