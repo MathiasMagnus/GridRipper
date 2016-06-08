@@ -13,7 +13,7 @@ namespace Multipole
 {
     namespace stl
     {
-        namespace SpinWeightedSpherical
+        namespace SWS
         {
             /// <summary>Traits class consisting of type aliases describing spin-weighted spherical expansion indeces.</summary>
             ///
@@ -84,7 +84,7 @@ namespace Multipole
                 ///
                 Index(std::initializer_list<value_type> init)
                 {
-                    //static_assert(init.size() == 3, "Initializer-list of Multipole::stl::SpinWeightedSpherical::Index must have 3 elements: {l, m, s}");
+                    //static_assert(init.size() == 3, "Initializer-list of Multipole::stl::SWS::Index must have 3 elements: {l, m, s}");
                     //assert(init.size() == 3);
 
                     l = *init.begin();
@@ -231,7 +231,7 @@ namespace Multipole
                 return os;
             }
 
-        } // namespace SpinWeightedSpherical
+        } // namespace SWS
 
     } // namespace stl
 

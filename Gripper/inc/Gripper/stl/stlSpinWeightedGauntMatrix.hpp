@@ -7,9 +7,9 @@
 // Gripper includes
 #include <Gripper/stl/stlMath.hpp>                          // Multipole::stl::pi
 #include <Gripper/stl/stlParity.hpp>                        // Multipole::stl::Parity
-#include <Gripper/stl/stlSpinWeightedSphericalIndex.hpp>    // Multipole::stl::SpinWeightedSpherical::Index
-#include <Gripper/stl/stlSpinWeightedSphericalExtent.hpp>   // Multipole::stl::SpinWeightedSpherical::Extent
-#include <Gripper/stl/stlSpinWeightedSphericalVector.hpp>   // Multipole::stl::SpinWeightedSpherical::Vector
+#include <Gripper/stl/stlSpinWeightedSphericalIndex.hpp>    // Multipole::stl::SWS::Index
+#include <Gripper/stl/stlSpinWeightedSphericalExtent.hpp>   // Multipole::stl::SWS::Extent
+#include <Gripper/stl/stlSpinWeightedSphericalVector.hpp>   // Multipole::stl::SWS::Vector
 #include <Gripper/stl/stlRadialVector.hpp>                  // Multipole::stl::Radial::Vector
 
 // Standard C++ includes
@@ -42,7 +42,7 @@ namespace Multipole
             {
                 // Lattice type aliases
 
-                using extent_type = SpinWeightedSpherical::Extent<L_Max, S_Max, IT>;
+                using extent_type = SWS::Extent<L_Max, S_Max, IT>;
                 using index_type = typename extent_type::index_type;
                 using index_internal_type = typename index_type::value_type;
 
@@ -484,13 +484,13 @@ namespace Multipole
                       Parity P = static_cast<Parity>(E1::parity * E2::parity),
                       typename IT = decltype(std::declval<typename E1::index_internal_type>() + std::declval<typename E2::index_internal_type>() + std::declval<typename G3::index_internal_type>()),
                       typename VT = decltype(std::declval<typename E1::value_type>() * std::declval<typename E2::value_type>() * std::declval<typename G3::mapped_type>())>
-            class Contraction : public SpinWeightedSpherical::ConstExpression<Contraction<E1, E2, G3>, E1::l_max, E1::s_max, P, IT, VT>
+            class Contraction : public SWS::ConstExpression<Contraction<E1, E2, G3>, E1::l_max, E1::s_max, P, IT, VT>
             {
             public:
 
                 // Expression type aliases
 
-                using expression_type = SpinWeightedSpherical::ConstExpression<Contraction<E1, E2, G3>, E1::l_max, E1::s_max, P, IT, VT>;
+                using expression_type = SWS::ConstExpression<Contraction<E1, E2, G3>, E1::l_max, E1::s_max, P, IT, VT>;
 
                 // Common type aliases
 
@@ -514,8 +514,8 @@ namespace Multipole
 
                 /// <summary>Constructs a <c>Contraction</c> from an extent <c>ext</c> and a function object <c>f</c>.</summary>
                 ///
-                Contraction(const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& u,
-                            const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& v,
+                Contraction(const SWS::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& u,
+                            const SWS::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& v,
                             const SpinWeightedGaunt::ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& g)
                     : _u(static_cast<const E1&>(u))
                     , _v(static_cast<const E2&>(v))
@@ -601,8 +601,8 @@ namespace Multipole
             }
 
             template <typename E1, typename E2, typename G3>
-            auto contract_relay(const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
-                                const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
+            auto contract_relay(const SWS::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
+                                const SWS::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
                                 const SpinWeightedGaunt::ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& gaunt)
             {
                 return Contraction<E1, E2, G3>(lhs, rhs, gaunt);
@@ -626,8 +626,8 @@ namespace Multipole
                       typename E2,
                       typename G3>
             auto contract(const ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& gaunt,
-                          const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
-                          const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs)
+                          const SWS::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
+                          const SWS::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs)
             {
                 //return Contraction<E1, E2, G3>(lhs, rhs, gaunt);
                 return contract_relay(lhs, rhs, gaunt);
@@ -639,10 +639,10 @@ namespace Multipole
                       typename E2,
                       typename G3>
             auto contract(const ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& gaunt,
-                          const SpinWeightedSpherical::Vector<L1, S1, P1, I1, T1>& lhs,
-                          const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs)
+                          const SWS::Vector<L1, S1, P1, I1, T1>& lhs,
+                          const SWS::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs)
             {
-                using view_type = SpinWeightedSpherical::ConstView<L1, S1, P1, I1, T1>;
+                using view_type = SWS::ConstView<L1, S1, P1, I1, T1>;
 
                 //return Contraction<view_type, E2, G3>(/*view_type*/(lhs), rhs, gaunt);
                 return contract_relay(view_type(lhs), rhs, gaunt);
@@ -654,10 +654,10 @@ namespace Multipole
                       std::size_t L2, std::size_t S2, Multipole::stl::Parity P2, typename I2, typename T2,
                       typename G3>
             auto contract(const ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& gaunt,
-                          const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
-                          const SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& rhs)
+                          const SWS::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
+                          const SWS::Vector<L2, S2, P2, I2, T2>& rhs)
             {
-                using view_type = SpinWeightedSpherical::ConstView<L2, S2, P2, I2, T2>;
+                using view_type = SWS::ConstView<L2, S2, P2, I2, T2>;
 
                 //return Contraction<E1, view_type, G3>(lhs, view_type(rhs), gaunt);
                 return contract_relay(lhs, view_type(rhs), gaunt);
@@ -669,11 +669,11 @@ namespace Multipole
                       std::size_t L2, std::size_t S2, Parity P2, typename I2, typename T2,
                       typename G3>
             auto contract(const ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& gaunt,
-                          const SpinWeightedSpherical::Vector<L1, S1, P1, I1, T1>& lhs,
-                          const SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& rhs)
+                          const SWS::Vector<L1, S1, P1, I1, T1>& lhs,
+                          const SWS::Vector<L2, S2, P2, I2, T2>& rhs)
             {
-                using view_type1 = SpinWeightedSpherical::ConstView<L1, S1, P1, I1, T1>;
-                using view_type2 = SpinWeightedSpherical::ConstView<L2, S2, P2, I2, T2>;
+                using view_type1 = SWS::ConstView<L1, S1, P1, I1, T1>;
+                using view_type2 = SWS::ConstView<L2, S2, P2, I2, T2>;
 
                 //return Contraction<view_type1, view_type2, G3>(view_type1(lhs), view_type2(rhs), gaunt);
                 return contract_relay(view_type1(lhs), view_type2(rhs), gaunt);
@@ -687,8 +687,8 @@ namespace Multipole
                       typename E2,
                       std::size_t L3, std::size_t S3, typename I3, typename T3>
             auto contract(const Matrix<L3, S3, I3, T3>& gaunt,
-                          const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
-                          const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs)
+                          const SWS::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
+                          const SWS::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs)
             {
                 using matrix_view_type = ConstView<L3, S3, I3, T3>;
 
@@ -702,11 +702,11 @@ namespace Multipole
                      typename E2,
                      std::size_t L3, std::size_t S3, typename I3, typename T3>
             auto contract(const Matrix<L3, S3, I3, T3>& gaunt,
-                          const SpinWeightedSpherical::Vector<L1, S1, P1, I1, T1>& lhs,
-                          const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs)
+                          const SWS::Vector<L1, S1, P1, I1, T1>& lhs,
+                          const SWS::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs)
             {
                 using matrix_view_type = ConstView<L3, S3, I3, T3>;
-                using view_type = SpinWeightedSpherical::ConstView<L1, S1, P1, I1, T1>;
+                using view_type = SWS::ConstView<L1, S1, P1, I1, T1>;
 
                 //return Contraction<view_type, E2, matrix_view_type>(/*view_type*/(lhs), rhs, /*matrix_view_type*/(gaunt));
                 return contract_relay(view_type(lhs), rhs, matrix_view_type(gaunt));
@@ -718,11 +718,11 @@ namespace Multipole
                       std::size_t L2, std::size_t S2, Multipole::stl::Parity P2, typename I2, typename T2,
                       std::size_t L3, std::size_t S3, typename I3, typename T3>
             auto contract(const Matrix<L3, S3, I3, T3>& gaunt,
-                          const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
-                          const SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& rhs)
+                          const SWS::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
+                          const SWS::Vector<L2, S2, P2, I2, T2>& rhs)
             {
                 using matrix_view_type = ConstView<L3, S3, I3, T3>;
-                using view_type = SpinWeightedSpherical::ConstView<L2, S2, P2, I2, T2>;
+                using view_type = SWS::ConstView<L2, S2, P2, I2, T2>;
 
                 //return Contraction<E1, view_type, matrix_view_type>(lhs, /*view_type*/(rhs), /*matrix_view_type*/(gaunt));
                 return contract_relay(lhs, view_type(rhs), matrix_view_type(gaunt));
@@ -734,12 +734,12 @@ namespace Multipole
                       std::size_t L2, std::size_t S2, Parity P2, typename I2, typename T2,
                       std::size_t L3, std::size_t S3, typename I3, typename T3>
             auto contract(const Matrix<L3, S3, I3, T3>& gaunt,
-                          const SpinWeightedSpherical::Vector<L1, S1, P1, I1, T1>& lhs,
-                          const SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& rhs)
+                          const SWS::Vector<L1, S1, P1, I1, T1>& lhs,
+                          const SWS::Vector<L2, S2, P2, I2, T2>& rhs)
             {
                 using matrix_view_type = ConstView<L3, S3, I3, T3>;
-                using view_type1 = SpinWeightedSpherical::ConstView<L1, S1, P1, I1, T1>;
-                using view_type2 = SpinWeightedSpherical::ConstView<L2, S2, P2, I2, T2>;
+                using view_type1 = SWS::ConstView<L1, S1, P1, I1, T1>;
+                using view_type2 = SWS::ConstView<L2, S2, P2, I2, T2>;
 
                 //return Contraction<view_type1, view_type2, matrix_view_type>(/*view_type1*/(lhs), /*view_type2*/(rhs), /*matrix_view_type*/(gaunt));
                 return contract_relay(view_type1(lhs), view_type2(rhs), matrix_view_type(gaunt));
@@ -771,13 +771,13 @@ namespace Multipole
                           typename G3,
                           typename PT>
                 auto neumann(const SpinWeightedGaunt::ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& gaunt,
-                             const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
-                             const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
-                             SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& temp,
-                             SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& running_x,
+                             const SWS::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
+                             const SWS::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
+                             SWS::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& temp,
+                             SWS::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& running_x,
                              const PT percentile)
                 {
-                    //SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type> running_x = rhs, temp;
+                    //SWS::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type> running_x = rhs, temp;
                     running_x = rhs;
                     auto f_00_Y_00_inv = static_cast<typename E2::value_type>(1) / rhs.at(typename E2::index_type{ 0, 0, 0 });
                     typename E2::value_type x_prime, sum, prev_sum;
@@ -830,10 +830,10 @@ namespace Multipole
                       typename G3,
                       typename PT>
             auto neumann(const SpinWeightedGaunt::ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& gaunt,
-                         const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
-                         const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
-                         SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& temp,
-                         SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& running_x,
+                         const SWS::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
+                         const SWS::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
+                         SWS::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& temp,
+                         SWS::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& running_x,
                          const PT percentile)
             {
                 return impl::neumann(gaunt, lhs, rhs, temp, running_x, percentile);
@@ -846,14 +846,14 @@ namespace Multipole
                       typename G3,
                       typename PT>
             auto neumann(const SpinWeightedGaunt::ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& gaunt,
-                         const SpinWeightedSpherical::Vector<L1, S1, P1, I1, T1>& lhs,
-                         const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
-                         SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& temp,
-                         SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& running_x,
+                         const SWS::Vector<L1, S1, P1, I1, T1>& lhs,
+                         const SWS::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
+                         SWS::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& temp,
+                         SWS::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& running_x,
                          const PT percentile)
             {
                 return impl::neumann(gaunt,
-                                     Multipole::stl::SpinWeightedSpherical::ConstView<L1, S1, P1, I1, T1>(lhs),
+                                     Multipole::stl::SWS::ConstView<L1, S1, P1, I1, T1>(lhs),
                                      rhs,
                                      temp, running_x,
                                      percentile);
@@ -866,15 +866,15 @@ namespace Multipole
                       typename G3,
                       typename PT>
             auto neumann(const SpinWeightedGaunt::ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& gaunt,
-                         const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
-                         const SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& rhs,
-                         SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& temp,
-                         SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& running_x,
+                         const SWS::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
+                         const SWS::Vector<L2, S2, P2, I2, T2>& rhs,
+                         SWS::Vector<L2, S2, P2, I2, T2>& temp,
+                         SWS::Vector<L2, S2, P2, I2, T2>& running_x,
                          const PT percentile)
             {
                 return impl::neumann(gaunt,
                                      lhs,
-                                     Multipole::stl::SpinWeightedSpherical::ConstView<L2, S2, P2, I2, T2>(rhs),
+                                     Multipole::stl::SWS::ConstView<L2, S2, P2, I2, T2>(rhs),
                                      temp, running_x,
                                      percentile);
             };
@@ -886,15 +886,15 @@ namespace Multipole
                       typename G3,
                       typename PT>
             auto neumann(const SpinWeightedGaunt::ConstExpression<G3, G3::l_max, G3::s_max, typename G3::index_internal_type, typename G3::mapped_type>& gaunt,
-                         const SpinWeightedSpherical::Vector<L1, S1, P1, I1, T1>& lhs,
-                         const SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& rhs,
-                         SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& temp,
-                         SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& running_x,
+                         const SWS::Vector<L1, S1, P1, I1, T1>& lhs,
+                         const SWS::Vector<L2, S2, P2, I2, T2>& rhs,
+                         SWS::Vector<L2, S2, P2, I2, T2>& temp,
+                         SWS::Vector<L2, S2, P2, I2, T2>& running_x,
                          const PT percentile)
             {
                 return impl::neumann(gaunt,
-                                     Multipole::stl::SpinWeightedSpherical::ConstView<L1, S1, P1, I1, T1>(lhs),
-                                     Multipole::stl::SpinWeightedSpherical::ConstView<L2, S2, P2, I2, T2>(rhs),
+                                     Multipole::stl::SWS::ConstView<L1, S1, P1, I1, T1>(lhs),
+                                     Multipole::stl::SWS::ConstView<L2, S2, P2, I2, T2>(rhs),
                                      temp, running_x,
                                      percentile);
             };
@@ -908,10 +908,10 @@ namespace Multipole
                       std::size_t L3, std::size_t S3, typename I3, typename T3,
                       typename PT>
             auto neumann(const SpinWeightedGaunt::Matrix<L3, S3, I3, T3>& gaunt,
-                         const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
-                         const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
-                         SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& temp,
-                         SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& running_x,
+                         const SWS::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
+                         const SWS::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
+                         SWS::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& temp,
+                         SWS::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& running_x,
                          const PT percentile)
             {
                 return impl::neumann(SpinWeightedGaunt::ConstView<L3, S3, I3, T3>(gaunt), lhs, rhs, temp, running_x, percentile);
@@ -924,14 +924,14 @@ namespace Multipole
                       std::size_t L3, std::size_t S3, typename I3, typename T3,
                       typename PT>
             auto neumann(const SpinWeightedGaunt::Matrix<L3, S3, I3, T3>& gaunt,
-                         const SpinWeightedSpherical::Vector<L1, S1, P1, I1, T1>& lhs,
-                         const SpinWeightedSpherical::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
-                         SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& temp,
-                         SpinWeightedSpherical::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& running_x,
+                         const SWS::Vector<L1, S1, P1, I1, T1>& lhs,
+                         const SWS::ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& rhs,
+                         SWS::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& temp,
+                         SWS::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type>& running_x,
                          const PT percentile)
             {
                 return impl::neumann(SpinWeightedGaunt::ConstView<L3, S3, I3, T3>(gaunt),
-                                     Multipole::stl::SpinWeightedSpherical::ConstView<L1, S1, P1, I1, T1>(lhs),
+                                     Multipole::stl::SWS::ConstView<L1, S1, P1, I1, T1>(lhs),
                                      rhs,
                                      temp, running_x,
                                      percentile);
@@ -944,15 +944,15 @@ namespace Multipole
                       std::size_t L3, std::size_t S3, typename I3, typename T3,
                       typename PT>
             auto neumann(const SpinWeightedGaunt::Matrix<L3, S3, I3, T3>& gaunt,
-                         const SpinWeightedSpherical::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
-                         const SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& rhs,
-                         SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& temp,
-                         SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& running_x,
+                         const SWS::ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& lhs,
+                         const SWS::Vector<L2, S2, P2, I2, T2>& rhs,
+                         SWS::Vector<L2, S2, P2, I2, T2>& temp,
+                         SWS::Vector<L2, S2, P2, I2, T2>& running_x,
                          const PT percentile)
             {
                 return impl::neumann(SpinWeightedGaunt::ConstView<L3, S3, I3, T3>(gaunt),
                                      lhs,
-                                     Multipole::stl::SpinWeightedSpherical::ConstView<L2, S2, P2, I2, T2>(rhs),
+                                     Multipole::stl::SWS::ConstView<L2, S2, P2, I2, T2>(rhs),
                                      temp, running_x,
                                      percentile);
             };
@@ -964,15 +964,15 @@ namespace Multipole
                       std::size_t L3, std::size_t S3, typename I3, typename T3,
                       typename PT>
             auto neumann(const SpinWeightedGaunt::Matrix<L3, S3, I3, T3>& gaunt,
-                         const SpinWeightedSpherical::Vector<L1, S1, P1, I1, T1>& lhs,
-                         const SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& rhs,
-                         SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& temp,
-                         SpinWeightedSpherical::Vector<L2, S2, P2, I2, T2>& running_x,
+                         const SWS::Vector<L1, S1, P1, I1, T1>& lhs,
+                         const SWS::Vector<L2, S2, P2, I2, T2>& rhs,
+                         SWS::Vector<L2, S2, P2, I2, T2>& temp,
+                         SWS::Vector<L2, S2, P2, I2, T2>& running_x,
                          const PT percentile)
             {
                 return impl::neumann(SpinWeightedGaunt::ConstView<L3, S3, I3, T3>(gaunt),
-                                     SpinWeightedSpherical::ConstView<L1, S1, P1, I1, T1>(lhs),
-                                     SpinWeightedSpherical::ConstView<L2, S2, P2, I2, T2>(rhs),
+                                     SWS::ConstView<L1, S1, P1, I1, T1>(lhs),
+                                     SWS::ConstView<L2, S2, P2, I2, T2>(rhs),
                                      temp, running_x,
                                      percentile);
             };

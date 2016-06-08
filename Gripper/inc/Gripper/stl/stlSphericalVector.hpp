@@ -294,7 +294,7 @@ namespace Multipole
                 ///
                 value_type at(const index_type& pos) const
                 {
-                    if (!m_extent.contains(pos)) assert("SpinWeightedSpherical::Vector: index out of range");
+                    if (!m_extent.contains(pos)) assert("SWS::Vector: index out of range");
 
                     return m_data.at(convert(pos));
                 }
@@ -305,7 +305,7 @@ namespace Multipole
                 ///
                 value_type& at(const index_type& pos)
                 {
-                    if (!m_extent.contains(pos)) assert("SpinWeightedSpherical::Vector: index out of range");
+                    if (!m_extent.contains(pos)) assert("SWS::Vector: index out of range");
 
                     return m_data.at(convert(pos));
                 }

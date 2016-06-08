@@ -1,7 +1,7 @@
 #pragma once
 
 // Gripper includes
-#include <Gripper/stl/stlSpinWeightedSphericalIndex.hpp>    // Multipole::stl::SpinWeightedSpherical::Index
+#include <Gripper/stl/stlSpinWeightedSphericalIndex.hpp>    // Multipole::stl::SWS::Index
 
 // Standard C++ includes
 #include <cassert>              // assert
@@ -14,7 +14,7 @@ namespace Multipole
 {
     namespace stl
     {
-        namespace SpinWeightedSpherical
+        namespace SWS
         {
             /// <summary>Class template representing the extent of spherical expansions.</summary>
             ///
@@ -70,7 +70,7 @@ namespace Multipole
                 ///
                 Extent(std::initializer_list<index_type> init) : _initial(*(init.begin())), _final(*(init.begin() + 1))
                 {
-                    //static_assert(init.size() == 2, "Size of std::initializer_list<Index> to Multipole::stl::SpinWeightedSpherical::Extent must be 2");
+                    //static_assert(init.size() == 2, "Size of std::initializer_list<Index> to Multipole::stl::SWS::Extent must be 2");
                 
                     assert(_initial <= _final);
                 }
@@ -118,7 +118,7 @@ namespace Multipole
                 return os;
             }
 
-        } // namespace SpinWeightedSpherical
+        } // namespace SWS
 
     } // namespace stl
 
@@ -126,9 +126,9 @@ namespace Multipole
 
 
 ////////////////////////////////////////////////////////
-// SpinWeightedSpherical::Extent non-member operators //
+// SWS::Extent non-member operators //
 ////////////////////////////////////////////////////////
 
 // Binary
-template <std::size_t L_Max, std::size_t S_Max, typename AT> bool operator==(const Multipole::stl::SpinWeightedSpherical::Extent<L_Max, S_Max, AT>& lhs, const Multipole::stl::SpinWeightedSpherical::Extent<L_Max, S_Max, AT>& rhs) { return (lhs.final() == rhs.final()) && (lhs.initial() == rhs.initial()); }
-template <std::size_t L_Max, std::size_t S_Max, typename AT> bool operator!=(const Multipole::stl::SpinWeightedSpherical::Extent<L_Max, S_Max, AT>& lhs, const Multipole::stl::SpinWeightedSpherical::Extent<L_Max, S_Max, AT>& rhs) { return (lhs.final() != rhs.final()) || (lhs.initial() != rhs.initial()); }
+template <std::size_t L_Max, std::size_t S_Max, typename AT> bool operator==(const Multipole::stl::SWS::Extent<L_Max, S_Max, AT>& lhs, const Multipole::stl::SWS::Extent<L_Max, S_Max, AT>& rhs) { return (lhs.final() == rhs.final()) && (lhs.initial() == rhs.initial()); }
+template <std::size_t L_Max, std::size_t S_Max, typename AT> bool operator!=(const Multipole::stl::SWS::Extent<L_Max, S_Max, AT>& lhs, const Multipole::stl::SWS::Extent<L_Max, S_Max, AT>& rhs) { return (lhs.final() != rhs.final()) || (lhs.initial() != rhs.initial()); }

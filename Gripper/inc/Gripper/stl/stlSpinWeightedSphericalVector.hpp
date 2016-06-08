@@ -2,8 +2,8 @@
 
 // Gripper includes
 #include <Gripper/stl/stlParity.hpp>                        // Multipole::stl::Parity
-#include <Gripper/stl/stlSpinWeightedSphericalIndex.hpp>    // Multipole::stl::SpinWeightedSpherical::Index
-#include <Gripper/stl/stlSpinWeightedSphericalExtent.hpp>   // Multipole::stl::SpinWeightedSpherical::Extent
+#include <Gripper/stl/stlSpinWeightedSphericalIndex.hpp>    // Multipole::stl::SWS::Index
+#include <Gripper/stl/stlSpinWeightedSphericalExtent.hpp>   // Multipole::stl::SWS::Extent
 
 // Standard C++ includes
 #include <cstddef>                  // std::size_t
@@ -17,7 +17,7 @@ namespace Multipole
 {
     namespace stl
     {
-        namespace SpinWeightedSpherical
+        namespace SWS
         {
             // Forward decalaration of l_parity helper
             template <typename E> auto l_parity(const typename E::extent_type&); // FIXME: this forward declaration should not really exist
@@ -191,7 +191,7 @@ namespace Multipole
                 using VectorTraits<L_Max, S_Max, P, IT, VT>::s_max;
                 using VectorTraits<L_Max, S_Max, P, IT, VT>::parity;
 
-                static auto l_parity(const extent_type& ext) { return Multipole::stl::SpinWeightedSpherical::l_parity<Expression<Vector<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>>(ext); }
+                static auto l_parity(const extent_type& ext) { return Multipole::stl::SWS::l_parity<Expression<Vector<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>>(ext); }
 
                 // Constructors / Destructors / Assignment operators
 
@@ -299,7 +299,7 @@ namespace Multipole
                 ///
                 const value_type& at(const index_type& pos) const
                 {
-                    if (!m_extent.contains(pos)) assert("SpinWeightedSpherical::Vector: index out of range");
+                    if (!m_extent.contains(pos)) assert("SWS::Vector: index out of range");
 
                     return m_data.at(convert(pos));
                 }
@@ -310,7 +310,7 @@ namespace Multipole
                 ///
                 value_type& at(const index_type& pos)
                 {
-                    if (!m_extent.contains(pos)) assert("SpinWeightedSpherical::Vector: index out of range");
+                    if (!m_extent.contains(pos)) assert("SWS::Vector: index out of range");
 
                     return m_data.at(convert(pos));
                 }
@@ -845,9 +845,9 @@ namespace Multipole
                 {
                     //std::cout << "sw::Zip _u = " << _u.extent() << " _v = " << _v.extent() << std::endl;
 
-                    static_assert(E1::l_max == E2::l_max, "SpinWeightedSpherical::Zip(l_max value mismatch)");
-                    static_assert(E1::s_max == E2::s_max, "SpinWeightedSpherical::Zip(s_max value mismatch)");
-                    static_assert(E1::parity == E2::parity, "SpinWeightedSpherical::Zip(parity value mismatch)");
+                    static_assert(E1::l_max == E2::l_max, "SWS::Zip(l_max value mismatch)");
+                    static_assert(E1::s_max == E2::s_max, "SWS::Zip(s_max value mismatch)");
+                    static_assert(E1::parity == E2::parity, "SWS::Zip(parity value mismatch)");
 
                     assert(_u.extent() == _v.extent());
                 }
@@ -1049,50 +1049,50 @@ namespace Multipole
             template <typename E>
             auto l_parity(const typename E::extent_type& ext) { return impl::l_parity<E>(ext, [](const typename E::index_type& i) { return i.l % 2 ? -1 : 1; }); }
             
-        } // namespace SpinWeightedSpherical
+        } // namespace SWS
 
     } // namespace stl
 
 } // namespace Multipole
 
 ////////////////////////////////////////////////////////
-// SpinWeightedSpherical::Vector non-member operators //
+// SWS::Vector non-member operators //
 ////////////////////////////////////////////////////////
 
 // Unary 
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator+(const Multipole::stl::SpinWeightedSpherical::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [](const auto& val) { return static_cast<T>(1) * val; }); }
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator-(const Multipole::stl::SpinWeightedSpherical::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [](const auto& val) { return static_cast<T>(-1) * val; }); }
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto conjugate(const Multipole::stl::SpinWeightedSpherical::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [](const auto& val) { return std::conj(val); }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator+(const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I, T>(v), [](const auto& val) { return static_cast<T>(1) * val; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator-(const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I, T>(v), [](const auto& val) { return static_cast<T>(-1) * val; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto conjugate(const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I, T>(v), [](const auto& val) { return std::conj(val); }); }
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator+(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SWS::map(v, [](const auto& val) { return static_cast<T>(1) * val; }); }
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator-(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SWS::map(v, [](const auto& val) { return static_cast<T>(-1) * val; }); }
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto conjugate(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SWS::map(v, [](const auto& val) { return std::conj(val); }); }
+template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator+(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [](const auto& val) { return static_cast<T>(1) * val; }); }
+template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator-(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [](const auto& val) { return static_cast<T>(-1) * val; }); }
+template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto conjugate(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [](const auto& val) { return std::conj(val); }); }
 
 // Binary
-template <typename E1, typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SpinWeightedSpherical::ConstExpression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SpinWeightedSpherical::ConstExpression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SpinWeightedSpherical::zip(u, v, [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
-template <typename E1, typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SpinWeightedSpherical::ConstExpression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SpinWeightedSpherical::ConstExpression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SpinWeightedSpherical::zip(u, v, [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
-template <typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I1, T1>& u, const Multipole::stl::SpinWeightedSpherical::ConstExpression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SpinWeightedSpherical::zip(Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I1, T1>(u), v, [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
-template <typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I1, T1>& u, const Multipole::stl::SpinWeightedSpherical::ConstExpression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SpinWeightedSpherical::zip(Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I1, T1>(u), v, [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
-template <typename E1, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SpinWeightedSpherical::ConstExpression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I2, T2>& v) { return Multipole::stl::SpinWeightedSpherical::zip(u, Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
-template <typename E1, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SpinWeightedSpherical::ConstExpression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I2, T2>& v) { return Multipole::stl::SpinWeightedSpherical::zip(u, Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I1, T1>& u, const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I2, T2>& v) { return Multipole::stl::SpinWeightedSpherical::zip(Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I1, T1>(u), Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I1, T1>& u, const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I2, T2>& v) { return Multipole::stl::SpinWeightedSpherical::zip(Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I1, T1>(u), Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
+template <typename E1, typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SWS::ConstExpression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SWS::ConstExpression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(u, v, [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
+template <typename E1, typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SWS::ConstExpression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SWS::ConstExpression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(u, v, [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
+template <typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SWS::Vector<L, S, P, I1, T1>& u, const Multipole::stl::SWS::ConstExpression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(Multipole::stl::SWS::ConstView<L, S, P, I1, T1>(u), v, [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
+template <typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SWS::Vector<L, S, P, I1, T1>& u, const Multipole::stl::SWS::ConstExpression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(Multipole::stl::SWS::ConstView<L, S, P, I1, T1>(u), v, [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
+template <typename E1, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SWS::ConstExpression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SWS::Vector<L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(u, Multipole::stl::SWS::ConstView<L, S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
+template <typename E1, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SWS::ConstExpression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SWS::Vector<L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(u, Multipole::stl::SWS::ConstView<L, S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
+template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SWS::Vector<L, S, P, I1, T1>& u, const Multipole::stl::SWS::Vector<L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(Multipole::stl::SWS::ConstView<L, S, P, I1, T1>(u), Multipole::stl::SWS::ConstView<L, S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
+template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SWS::Vector<L, S, P, I1, T1>& u, const Multipole::stl::SWS::Vector<L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(Multipole::stl::SWS::ConstView<L, S, P, I1, T1>(u), Multipole::stl::SWS::ConstView<L, S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
 
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Scalar alpha, const Multipole::stl::SpinWeightedSpherical::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [=](const auto& val) { return alpha * val; }); }
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Multipole::stl::SpinWeightedSpherical::ConstExpression<E, L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SpinWeightedSpherical::map(v, [=](const auto& val) { return alpha * val; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Scalar alpha, const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I, T>(v), [=](const auto& val) { return alpha * val; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SpinWeightedSpherical::map(Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I, T>(v), [=](const auto& val) { return alpha * val; }); }
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Scalar alpha, const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SWS::map(v, [=](const auto& val) { return alpha * val; }); }
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SWS::map(v, [=](const auto& val) { return alpha * val; }); }
+template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Scalar alpha, const Multipole::stl::SWS::Vector<L, S, P, I, T>& v) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [=](const auto& val) { return alpha * val; }); }
+template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [=](const auto& val) { return alpha * val; }); }
 
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator/(const Multipole::stl::SpinWeightedSpherical::ConstExpression<E, L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SpinWeightedSpherical::map(v, [=](const auto& val) { return val / alpha; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator/(const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SpinWeightedSpherical::map(Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I, T>(v), [=](const auto& val) { return val / alpha; }); }
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator/(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SWS::map(v, [=](const auto& val) { return val / alpha; }); }
+template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator/(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [=](const auto& val) { return val / alpha; }); }
 
 namespace Multipole
 {
     namespace stl
     {
-        namespace SpinWeightedSpherical
+        namespace SWS
         {
-            template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto real_cast(const Multipole::stl::SpinWeightedSpherical::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(v, [](auto&& val) { return val.real(); }); }
-            template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto real_cast(const Multipole::stl::SpinWeightedSpherical::Vector<L, S, P, I, T>& v) { return Multipole::stl::SpinWeightedSpherical::map(Multipole::stl::SpinWeightedSpherical::ConstView<L, S, P, I, T>(v), [](auto&& val) { return val.real(); }); }
+            template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto real_cast(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SWS::map(v, [](auto&& val) { return val.real(); }); }
+            template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto real_cast(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [](auto&& val) { return val.real(); }); }
 
             template <typename E> auto edth(const ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Edth<E, Spin::Up>(u); }
             template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto edth(const Vector<L, S, P, I, T>& u) { return edth(ConstView<L, S, P, I, T>(u)); }
@@ -1100,7 +1100,7 @@ namespace Multipole
             template <typename E> auto edth_bar(const ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Edth<E, Spin::Down>(u); }
             template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto edth_bar(const Vector<L, S, P, I, T>& u) { return edth_bar(ConstView<L, S, P, I, T>(u)); }
 
-        } // namespace SpinWeightedSpherical
+        } // namespace SWS
 
     } // namespace stl
 

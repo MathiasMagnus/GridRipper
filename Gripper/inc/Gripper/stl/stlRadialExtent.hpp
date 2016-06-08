@@ -1,7 +1,7 @@
 #pragma once
 
 // Gripper includes
-#include <Gripper/stl/stlSphericalIndex.hpp>    // Multipole::stl::Spherical::Index, Multipole::stl::SpinWeightedSpherical::Index
+#include <Gripper/stl/stlSphericalIndex.hpp>    // Multipole::stl::Spherical::Index, Multipole::stl::SWS::Index
 
 // Standard C++ includes
 #include <initializer_list>                     // std::initializer_list
