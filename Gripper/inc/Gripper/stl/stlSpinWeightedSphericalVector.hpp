@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // Gripper includes
 #include <Gripper/stl/stlParity.hpp>                        // Multipole::stl::Parity
@@ -906,6 +906,7 @@ namespace Multipole
                 template <typename S> struct SpinStepper;
 
                 /// <summary>Specialization of the spin stepping helper function for the Expression Template implementing the spin-up operator.</summary>
+                /// <note>J. N. Goldberg, A. J. Macfarlane, E. T. Newman, F. Rohrlich, and E. C. G. Sudarshan Spin‐s Spherical Harmonics and ð, eq. (2.7a)</note>
                 ///
                 template <> struct SpinStepper<Spin::Up>
                 {
@@ -930,6 +931,7 @@ namespace Multipole
 
 
                 /// <summary>Specialization of the spin stepping helper function for the Expression Template implementing the spin-down operator.</summary>
+                /// <note>J. N. Goldberg, A. J. Macfarlane, E. T. Newman, F. Rohrlich, and E. C. G. Sudarshan Spin‐s Spherical Harmonics and ð, eq. (2.7b)</note>
                 ///
                 template <> struct SpinStepper<Spin::Down>
                 {
@@ -1084,6 +1086,10 @@ template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, ty
 
 template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator/(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SWS::map(v, [=](const auto& val) { return val / alpha; }); }
 template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator/(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [=](const auto& val) { return val / alpha; }); }
+
+// FIXME: should not be restricted to float, when using Scalar, SWS::ConstExpressions will also match
+template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator-(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v, const float alpha) { return Multipole::stl::SWS::map(v, [=](const auto& val) { return val - alpha; }); }
+template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator-(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v, const float alpha) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [=](const auto& val) { return val - alpha; }); }
 
 namespace Multipole
 {

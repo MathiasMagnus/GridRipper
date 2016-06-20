@@ -311,6 +311,7 @@ namespace Multipole
                 }
 
                 /// <summary>Computes matrix coefficients with first index <c>L1</c> and <c>M1</c>.</summary>
+                /// <note>M. Shiraishi, Probing the Early Universe with the CMB Scalar, Vector and Tensor 153 Bispectrum, Springer Theses, DOI: 10.1007/978-4-431-54180-6 Appendix C, eq. 8</note>
                 ///
                 container_type computeLM(const index_internal_type L1, const index_internal_type M1)
                 {
@@ -331,8 +332,10 @@ namespace Multipole
                                                 if ((M1 + M2 + M3) != 0) continue;
 
                                                 // NOTE: * 2 is because of GSL calling convention
-                                                mapped_type temp1 = static_cast<mapped_type>(gsl_sf_coupling_3j(L1 * 2, L2 * 2, L3 * 2, M1 * 2, M2 * 2, M3 * 2));
-                                                mapped_type temp2 = static_cast<mapped_type>(gsl_sf_coupling_3j(L1 * 2, L2 * 2, L3 * 2, -S1 * 2, -S2 * 2, -S3 * 2));
+                                                //mapped_type temp1 = static_cast<mapped_type>(gsl_sf_coupling_3j(L1 * 2, L2 * 2, L3 * 2, M1 * 2, M2 * 2, M3 * 2));
+                                                //mapped_type temp2 = static_cast<mapped_type>(gsl_sf_coupling_3j(L1 * 2, L2 * 2, L3 * 2, -S1 * 2, -S2 * 2, -S3 * 2));
+                                                mapped_type temp1 = static_cast<mapped_type>(gsl_sf_coupling_3j(L1, L2, L3, M1, M2, M3));
+                                                mapped_type temp2 = static_cast<mapped_type>(gsl_sf_coupling_3j(L1, L2, L3, -S1, -S2, -S3));
 
                                                 mapped_type res = static_cast<mapped_type>(std::sqrt((2 * L1 + 1) * (2 * L2 + 1) * (2 * L3 + 1) / (4.0 * pi<mapped_type>)) * temp1 * temp2);
 
@@ -780,44 +783,44 @@ namespace Multipole
                     //SWS::Vector<E2::l_max, E2::s_max, E2::parity, typename E2::index_type::value_type, typename E2::value_type> running_x = rhs, temp;
                     running_x = rhs;
                     auto f_00_Y_00_inv = static_cast<typename E2::value_type>(1) / rhs.at(typename E2::index_type{ 0, 0, 0 });
-                    typename E2::value_type x_prime, sum, prev_sum;
+                    typename E2::value_type x, sum, prev_sum;
                     PT deviation;
 
                     // 0th order term in summation
-                    x_prime = static_cast<typename E2::value_type>(1);
-                    sum = x_prime;
+                    sum = static_cast<typename E2::value_type>(1);
 
                     // 1st order term in summation
-                    x_prime = 0;
+                    x = 0;
 
                     for (auto i = ++typename E2::index_type(running_x.extent().initial()); running_x.extent().contains(i); ++i)
                     {
-                        x_prime += running_x.at(i);
+                        x += running_x.at(i);
                     }
-                    x_prime *= f_00_Y_00_inv;
+                    x *= f_00_Y_00_inv;
 
                     prev_sum = sum;
-                    sum -= x_prime;
+                    sum -= x;
                     deviation = std::abs(prev_sum - sum) / std::max(prev_sum, sum);
 
                     // 2nd order and onward
                     for (std::int32_t I = 2; deviation > percentile; ++I)
                     {
-                        x_prime = 0;
-                        temp = contract(gaunt, running_x, rhs);
+                        x = 0;
+                        running_x.at(typename E2::index_type{ 0, 0, 0 }) = 0;
+                        temp = contract(gaunt, running_x, f_00_Y_00_inv * rhs);
 
                         for (auto i = ++typename E2::index_type(running_x.extent().initial()); running_x.extent().contains(i); ++i)
                         {
-                            x_prime += temp.at(i);
+                            x += temp.at(i);
                         }
-                        x_prime *= f_00_Y_00_inv;
+                        x *= f_00_Y_00_inv;
 
                         prev_sum = sum;
-                        sum += static_cast<typename E2::value_type>((I % 2) ? -1.f : 1.f) * x_prime;
+                        sum += static_cast<typename E2::value_type>((I % 2) ? -1.f : 1.f) * x;
                         deviation = std::abs(prev_sum - sum) / std::max(prev_sum, sum);
                         running_x = temp;
                     }
-
+                    std::cout << f_00_Y_00_inv << std::endl;
                     return lhs * (sum * f_00_Y_00_inv);
                 }
 

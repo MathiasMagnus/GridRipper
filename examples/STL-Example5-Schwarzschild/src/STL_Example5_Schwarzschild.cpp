@@ -102,7 +102,7 @@ int main()
     auto real_cast = [&](const auto& val) { return SWS::real_cast(val); };
     auto H = [&](const real r) { return M / r; };
     auto analytic = [&](const real rho) { return -four * M / (rho * rho * std::sqrt(one + two * H(rho))); }; // based on (3.36)
-    auto update_constants = [contract, lms_ext, H, M, real_cast, one, two, eight, &N_kalap, &K_kalap, &kappa_null, &a, &b, &d](const real rho)
+    auto update_constants = [contract, lms_ext, H, M, real_cast, one, two, one_per_two, eight, &N_kalap, &K_kalap, &kappa_null, &a, &b, &d](const real rho)
     {
         for (auto i = lms_ext.initial(); lms_ext.contains(i); ++i)
         {
@@ -113,7 +113,6 @@ int main()
                 kappa_null.at(i) = (eight * M * M) / (rho * rho * std::pow(two * M + rho, 2)); // [3] eq. (1.6) and discussion
                 a.at(i) = rho * rho;
                 b.at(i) = 0;
-                d = contract(a, a) - real_cast(contract(b, conjugate(b)));
             }
             else
             {
@@ -122,9 +121,16 @@ int main()
                 kappa_null.at(i) = 0;
                 a.at(i) = 0;
                 b.at(i) = 0;
-                d = contract(a, a) - real_cast(contract(b, conjugate(b)));
             }
-        }    
+        }
+
+        N_kalap = N_kalap / (one_per_two * std::sqrt(one / pi<real>));
+        K_kalap = K_kalap / (one_per_two * std::sqrt(one / pi<real>));
+        kappa_null = kappa_null /  (one_per_two * std::sqrt(one / pi<real>));
+        a = a / (one_per_two * std::sqrt(one / pi<real>));
+        b = b / (one_per_two * std::sqrt(one / pi<real>));
+        
+        d = contract(a, a) - real_cast(contract(b, conjugate(b)));
     };
 
     // Initialize states
@@ -168,6 +174,7 @@ int main()
         k_k_bar = real_cast(contract(state.get<k>(), conjugate(state.get<k>())));
         k_bar_sq = contract(conjugate(state.get<k>()), conjugate(state.get<k>()));
         round_braces = two * contract(a, k_k_bar) - real_cast(contract(b, k_bar_sq) + contract(conjugate(b), k_sq));
+        std::cout << "d{0, 0, 0} = " << d.at({ 0, 0, 0 }) << "\t" << "divide(round_braces, d) = ";
         square_braces = divide(round_braces, d) - one_per_two * K_sq - kappa_null;
 
         //
