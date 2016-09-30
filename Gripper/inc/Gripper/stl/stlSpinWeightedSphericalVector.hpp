@@ -24,7 +24,7 @@ namespace Multipole
 
             /// <summary>Traits class consisting of type aliases describing spin-weighted spherical expansion coefficient vectors.</summary>
             ///
-            template <std::size_t L_Max, std::size_t S_Max, Parity P, typename IT, typename VT>
+            template <std::size_t L_Max, std::size_t S, Parity P, typename IT, typename VT>
             struct VectorTraits
             {
                 // Common type aliases
@@ -38,22 +38,22 @@ namespace Multipole
 
                 // Lattice type aliases
 
-                using extent_type = Extent<L_Max, S_Max, IT>;
+                using extent_type = Extent<L_Max, S, IT>;
                 using index_type = typename extent_type::index_type;
                 using index_internal_type = typename index_type::value_type;
 
                 // Lattice static members
 
                 static const index_internal_type l_max = static_cast<index_internal_type>(L_Max);
-                static const index_internal_type s_max = static_cast<index_internal_type>(S_Max);
+                static const index_internal_type s = static_cast<index_internal_type>(S);
                 static const Parity parity = P;
             };
 
 
             /// <summary>Read-only Expression Template base class of spin-weighted spherical expansion coefficient vectors to be implemented statically.</summary>
             ///
-            template <typename ET, std::size_t L_Max, std::size_t S_Max, Parity P, typename IT, typename VT>
-            struct ConstExpression : public VectorTraits<L_Max, S_Max, P, IT, VT>
+            template <typename ET, std::size_t L_Max, std::size_t S, Parity P, typename IT, typename VT>
+            struct ConstExpression : public VectorTraits<L_Max, S, P, IT, VT>
             {
                 // ConstExpression type aliases
 
@@ -61,24 +61,24 @@ namespace Multipole
 
                 // Common type aliases
 
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::value_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::value_type;
 
                 // STL type aliases
 
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::container_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::size_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::container_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::size_type;
 
                 // Lattice type aliases
 
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::extent_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::index_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::index_internal_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::extent_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::index_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::index_internal_type;
 
                 // Lattice static members
 
-                using VectorTraits<L_Max, S_Max, P, IT, VT>::l_max;
-                using VectorTraits<L_Max, S_Max, P, IT, VT>::s_max;
-                using VectorTraits<L_Max, S_Max, P, IT, VT>::parity;
+                using VectorTraits<L_Max, S, P, IT, VT>::l_max;
+                using VectorTraits<L_Max, S, P, IT, VT>::s;
+                using VectorTraits<L_Max, S, P, IT, VT>::parity;
 
                 // ConstExpression interface
 
@@ -112,8 +112,8 @@ namespace Multipole
 
             /// <summary>Read-write Expression Template base class of spherical expansion coefficient vectors to be implemented statically.</summary>
             ///
-            template <typename ET, std::size_t L_Max, std::size_t S_Max, Parity P, typename IT, typename VT>
-            struct Expression : public ConstExpression<ET, L_Max, S_Max, P, IT, VT>
+            template <typename ET, std::size_t L_Max, std::size_t S, Parity P, typename IT, typename VT>
+            struct Expression : public ConstExpression<ET, L_Max, S, P, IT, VT>
             {
                 // Expression type aliases
 
@@ -121,24 +121,24 @@ namespace Multipole
 
                 // Common type aliases
 
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::value_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::value_type;
 
                 // STL type aliases
 
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::container_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::size_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::container_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::size_type;
 
                 // Lattice type aliases
 
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::extent_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::index_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::index_internal_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::extent_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::index_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::index_internal_type;
 
                 // Lattice static members
 
-                using VectorTraits<L_Max, S_Max, P, IT, VT>::l_max;
-                using VectorTraits<L_Max, S_Max, P, IT, VT>::s_max;
-                using VectorTraits<L_Max, S_Max, P, IT, VT>::parity;
+                using VectorTraits<L_Max, S, P, IT, VT>::l_max;
+                using VectorTraits<L_Max, S, P, IT, VT>::s;
+                using VectorTraits<L_Max, S, P, IT, VT>::parity;
 
                 // Expression interface
 
@@ -163,35 +163,37 @@ namespace Multipole
 
 
             /// <summary>Class storing the coefficients of a series expansion over spin-weighted spherical harmonics.</summary>
-            /// <remarks>The Vector class template is not an Expression Template. There are seperate View classes for that.</remarks>
             ///
-            template <std::size_t L_Max, std::size_t S_Max, Parity P, typename IT, typename VT>
-            class Vector : public VectorTraits<L_Max, S_Max, P, IT, VT>
+            /// <remarks>The Vector class template is not an Expression Template. There are seperate View classes for that.</remarks>
+            /// <remarks>Also note that the Vector class slightly overallocates, due to the complexity of inverting the indexing function.</remarks>
+            ///
+            template <std::size_t L_Max, std::size_t S, Parity P, typename IT, typename VT>
+            class Vector : public VectorTraits<L_Max, S, P, IT, VT>
             {
             public:
 
                 // Common type aliases
 
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::value_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::value_type;
 
                 // STL type aliases
 
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::container_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::size_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::container_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::size_type;
 
                 // Lattice type aliases
 
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::extent_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::index_type;
-                using typename VectorTraits<L_Max, S_Max, P, IT, VT>::index_internal_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::extent_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::index_type;
+                using typename VectorTraits<L_Max, S, P, IT, VT>::index_internal_type;
 
                 // Lattice static members
 
-                using VectorTraits<L_Max, S_Max, P, IT, VT>::l_max;
-                using VectorTraits<L_Max, S_Max, P, IT, VT>::s_max;
-                using VectorTraits<L_Max, S_Max, P, IT, VT>::parity;
+                using VectorTraits<L_Max, S, P, IT, VT>::l_max;
+                using VectorTraits<L_Max, S, P, IT, VT>::s;
+                using VectorTraits<L_Max, S, P, IT, VT>::parity;
 
-                static auto l_parity(const extent_type& ext) { return Multipole::stl::SWS::l_parity<Expression<Vector<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>>(ext); }
+                static auto l_parity(const extent_type& ext) { return Multipole::stl::SWS::l_parity<Expression<Vector<L_Max, S, P, IT, VT>, L_Max, S, P, IT, VT>>(ext); }
 
                 // Constructors / Destructors / Assignment operators
 
@@ -223,28 +225,20 @@ namespace Multipole
 
                 ///<summary>Constructs a series expansion vector of <c>ext</c> size.</summary>
                 ///
-                Vector(const extent_type& ext) : m_extent(ext), m_data()
-                {
-                    size_type counter = 0;
-
-                    for (index_type i = m_extent.initial(); m_extent.contains(i); ++i)
-                        ++counter;
-
-                    m_data.resize(counter);
-                }
+                Vector(const extent_type& ext) : m_extent(ext), m_data() { m_data.resize(distance(ext.initial(), ext.final())); }
 
                 ///<summary>Constructs a series expansion vector from the expression <c>expr</c>.</summary>
                 ///
-                template <typename ConstVecExpr, std::size_t L_Max, std::size_t S_Max, typename IndexType, typename ValueType>
-                Vector(const ConstExpression<ConstVecExpr, L_Max, S_Max, P, IndexType, ValueType>& expr)
+                template <typename ConstVecExpr, std::size_t L_Max, std::size_t S, typename IndexType, typename ValueType>
+                Vector(const ConstExpression<ConstVecExpr, L_Max, S, P, IndexType, ValueType>& expr)
                 {
                     serial_evaluator(expr);
                 }
 
                 ///<summary>Constructs a series expansion vector from the expression <c>expr</c>.</summary>
                 ///
-                template <typename ConstVecExpr, std::size_t L_Max, std::size_t S_Max, typename IndexType, typename ValueType>
-                Vector& operator=(const ConstExpression<ConstVecExpr, L_Max, S_Max, P, IndexType, ValueType>& expr)
+                template <typename ConstVecExpr, std::size_t L_Max, std::size_t S, typename IndexType, typename ValueType>
+                Vector& operator=(const ConstExpression<ConstVecExpr, L_Max, S, P, IndexType, ValueType>& expr)
                 {
                     serial_evaluator(expr);
 
@@ -299,8 +293,9 @@ namespace Multipole
                 ///
                 const value_type& at(const index_type& pos) const
                 {
+#ifndef NDEBUG
                     if (!m_extent.contains(pos)) assert("SWS::Vector: index out of range");
-
+#endif
                     return m_data.at(convert(pos));
                 }
 
@@ -310,8 +305,9 @@ namespace Multipole
                 ///
                 value_type& at(const index_type& pos)
                 {
+#ifndef NDEBUG
                     if (!m_extent.contains(pos)) assert("SWS::Vector: index out of range");
-
+#endif
                     return m_data.at(convert(pos));
                 }
 
@@ -321,23 +317,29 @@ namespace Multipole
                 ///
                 index_type convert(const size_type& i) const
                 {
-                    static_assert(false, "This function currently does not work");
+                    index_type result{ 0, 0, 0 };
 
-                    return index_type{ 0, 0, 0 };
+                    result.l = std::lround((std::sqrt(1 + 4 * i) - 1) / 2);
+                    result.m = i - result.l * (result.l + 1);
+                    result.s = s;
+
+                    return index_type;
                 }
 
                 /// <summary>Converts from index_type to size_type for indexing into own container.</summary>
                 ///
                 size_type convert(const index_type& pos) const
                 {
-                    // FIXME: I am a terribly slow indexing funcion work-around!!!
+                    return pos.l * (pos.l + static_cast<index_internal_type>(1u)) + pos.m;
+                }
 
-                    size_type counter = 0;
-
-                    for (index_type I = m_extent.initial(); I != pos; ++I)
-                        ++counter;
-
-                    return counter;
+                /// <summary>Converts from index_type to size_type for indexing into own container.</summary>
+                ///
+                /// <note>The distance of two indicies only has meaning in the context of a vector or matrix, but not the extent itself.</note>
+                ///
+                size_type distance(const index_type& from, const index_type to) const
+                {
+                    return convert(to) - convert(from);
                 }
 
                 /// <summary>Initializes internal states and evaluates elements of the expression <c>expr</c> in a serial manner.</summary>

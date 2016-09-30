@@ -15,7 +15,7 @@ namespace Multipole
     {
         namespace SWS
         {
-            /// <summary>Traits class consisting of type aliases describing spin-weighted spherical expansion indeces.</summary>
+            /// <summary>Traits class consisting of type aliases describing spin-weighted spherical expansion indicies.</summary>
             ///
             template <typename VT>
             struct IndexTraits
@@ -23,30 +23,17 @@ namespace Multipole
                 // Common type aliases
 
                 using value_type = VT;
-
-                // STL type aliases
-
-                using size_type = std::size_t;
             };
 
 
-            /// <summary>Class template representing spin-weighted spherical expansion indeces.</summary>
+            /// <summary>Class template representing spin-weighted spherical expansion indicies.</summary>
             ///
-            template <std::size_t L_Max, std::size_t S_Max, typename ArithmeticType = std::int8_t>
+            template <typename ArithmeticType = std::int8_t>
             struct Index : IndexTraits<ArithmeticType>
             {
                 // Common type aliases
 
                 using typename IndexTraits<ArithmeticType>::value_type;
-
-                // STL type aliases
-
-                using typename IndexTraits<ArithmeticType>::size_type;
-
-                // Lattice static members
-
-                static const value_type l_max = static_cast<value_type>(L_Max);
-                static const value_type s_max = static_cast<value_type>(S_Max);
 
                 // Constructors / Destructors / Assignment operators
 
@@ -78,24 +65,27 @@ namespace Multipole
                 /// <summary>Templated constructor that validates contents.</summary>
                 ///
                 template <typename TT>
-                Index(const TT l_in, const TT m_in, const TT s_in) : l(l_in), m(m_in), s(s_in) { assert(l <= l_max && std::abs(m) <= l_max && std::abs(s) <= std::min(l, s_max)); }
+                Index(const TT l_in, const TT m_in, const TT s_in) : l(l_in), m(m_in), s(s_in)
+                {
+                    assert(s < 0 ? -s <= l : s <= l); // SpinWeightedSphericalIndex must have |S| <= L_Max.
+
+                    assert(l <= l_max && std::abs(m) <= l_max);
+                }
 
                 /// <summary>Initializer list constructor that validates contents.</summary>
                 ///
                 Index(std::initializer_list<value_type> init)
                 {
                     //static_assert(init.size() == 3, "Initializer-list of Multipole::stl::SWS::Index must have 3 elements: {l, m, s}");
-                    //assert(init.size() == 3);
+                    assert(init.size() == 3);
 
-                    l = *init.begin();
-                    m = *(init.begin() + 1);
-                    s = *(init.begin() + 2);
-
-                    assert(l <= l_max && std::abs(m) <= l_max && std::abs(s) <= std::min(l, s_max));
+                    Index(*init.begin(),
+                          *(init.begin() + 1),
+                          *(init.begin() + 2));
                 }
 
                 // Member operators
-
+                /*
                 /// <summary>Strictly weak ordering comparator.</summary>
                 ///
                 bool operator<(const Index& rhs) const
@@ -123,7 +113,7 @@ namespace Multipole
                     if (s > rhs.s) return true;
                     return false;
                 }
-
+                */
                 /// <summary>Equality test operator.</summary>
                 ///
                 bool operator==(const Index& rhs) const
@@ -137,7 +127,7 @@ namespace Multipole
                 {
                     return (l != rhs.l) || (m != rhs.m) || (s != rhs.s);
                 }
-
+                /*
                 /// <summary>Less than or equal to comparator.</summary>
                 ///
                 bool operator<=(const Index& rhs) const
@@ -151,7 +141,7 @@ namespace Multipole
                 {
                     return (*this > rhs) || (*this == rhs);
                 }
-
+                
                 /// <summary>Prefix increment operator.</summary>
                 ///
                 Index& operator++()
@@ -201,16 +191,18 @@ namespace Multipole
 
                     return result;
                 }
-
+                */
                 value_type l;
                 value_type m;
                 value_type s;
             };
 
+
+
             /// <summary>STL stream operator overload for formatted console output.</summary>
             ///
-            template <std::size_t L, std::size_t S, typename AT>
-            std::ostream& operator<<(std::ostream& os, const Index<L, S, AT>& index)
+            template <typename AT>
+            std::ostream& operator<<(std::ostream& os, const Index<AT>& index)
             {
                 //////////////////////////////////////////////////////////////////////////////////////
                 //                                                                                  //
@@ -226,7 +218,11 @@ namespace Multipole
                 // ASSUMPTION: here we make the assumption that std::ostream& is some derivate of
                 //             a formatted console entity.
 
-                os << "{ " << static_cast<int>(index.l) << ", " << static_cast<int>(index.m) << ", " << static_cast<int>(index.s) << " }";
+                os <<
+                    "{ " << static_cast<int>(index.l) <<
+                    ", " << static_cast<int>(index.m) <<
+                    ", " << static_cast<int>(index.s) <<
+                    " }";
 
                 return os;
             }

@@ -18,14 +18,14 @@ namespace Multipole
         {
             /// <summary>Class template representing the extent of spherical expansions.</summary>
             ///
-            template <std::size_t L_Max, std::size_t S_Max, typename ArithemticType = typename Index<L_Max, S_Max>::value_type>
+            template <typename ArithemticType = typename Index<L_Max, S_Max>::value_type>
             class Extent
             {
             public:
 
                 // Lattice type aliases
 
-                typedef Index<L_Max, S_Max, ArithemticType> index_type;
+                typedef Index<ArithemticType> index_type;
                 typedef typename index_type::value_type index_internal_type;
 
                 // Lattice static members
