@@ -1,9 +1,14 @@
 ﻿#pragma once
 
 // Gripper includes
-#include <Gripper/stl/stlParity.hpp>                        // Multipole::stl::Parity
-#include <Gripper/stl/stlSpinWeightedSphericalIndex.hpp>    // Multipole::stl::SWS::Index
-#include <Gripper/stl/stlSpinWeightedSphericalExtent.hpp>   // Multipole::stl::SWS::Extent
+#include <Gripper/stl/stlConfig.hpp>
+#include <Gripper/stl/stlParity.hpp>                        // math::sws::parity
+#include <Gripper/stl/stlSpinWeightedSphericalIndex.hpp>    // math::sws::index
+#include <Gripper/stl/stlSpinWeightedSphericalExtent.hpp>   // math::sws::extent
+//#include <Gripper/stl/stlIndexableIterator.hpp>             // indexable_iterator
+
+// Custom C++ includes
+#include <Gripper/stl/stlArithmeticProgression.hpp>           // stl::arithmetic_progression_iterator
 
 // Standard C++ includes
 #include <cstddef>                  // std::size_t
@@ -13,19 +18,17 @@
 #include <complex>                  // std::complex
 
 
-namespace Multipole
+namespace math
 {
-    namespace stl
+    namespace sws
     {
-        namespace SWS
-        {
             // Forward decalaration of l_parity helper
             template <typename E> auto l_parity(const typename E::extent_type&); // FIXME: this forward declaration should not really exist
 
             /// <summary>Traits class consisting of type aliases describing spin-weighted spherical expansion coefficient vectors.</summary>
             ///
-            template <std::size_t L_Max, std::size_t S, Parity P, typename IT, typename VT>
-            struct VectorTraits
+            template <std::size_t S, parity P, typename IT, typename VT>
+            struct vector_traits
             {
                 // Common type aliases
 
@@ -36,24 +39,33 @@ namespace Multipole
                 using container_type = std::vector<value_type>;
                 using size_type = typename container_type::size_type;
 
+                // ConstIterator aliases
+
+                using const_iterator_type = typename container_type::const_iterator;
+                using const_reverse_iterator_type = typename container_type::const_reverse_iterator;
+
+                // Iterator aliases
+
+                using iterator_type = typename container_type::iterator;
+                using reverse_iterator_type = typename container_type::reverse_iterator;
+
                 // Lattice type aliases
 
-                using extent_type = Extent<L_Max, S, IT>;
+                using extent_type = extent<IT>;
                 using index_type = typename extent_type::index_type;
                 using index_internal_type = typename index_type::value_type;
 
                 // Lattice static members
 
-                static const index_internal_type l_max = static_cast<index_internal_type>(L_Max);
                 static const index_internal_type s = static_cast<index_internal_type>(S);
-                static const Parity parity = P;
+                static const parity parity = P;
             };
 
 
             /// <summary>Read-only Expression Template base class of spin-weighted spherical expansion coefficient vectors to be implemented statically.</summary>
             ///
-            template <typename ET, std::size_t L_Max, std::size_t S, Parity P, typename IT, typename VT>
-            struct ConstExpression : public VectorTraits<L_Max, S, P, IT, VT>
+            template <typename ET, std::size_t S, parity P, typename IT, typename VT>
+            struct const_expression : public vector_traits<S, P, IT, VT>
             {
                 // ConstExpression type aliases
 
@@ -61,24 +73,28 @@ namespace Multipole
 
                 // Common type aliases
 
-                using typename VectorTraits<L_Max, S, P, IT, VT>::value_type;
+                using typename vector_traits<S, P, IT, VT>::value_type;
 
                 // STL type aliases
 
-                using typename VectorTraits<L_Max, S, P, IT, VT>::container_type;
-                using typename VectorTraits<L_Max, S, P, IT, VT>::size_type;
+                using typename vector_traits<S, P, IT, VT>::container_type;
+                using typename vector_traits<S, P, IT, VT>::size_type;
+
+                // ConstIterator aliases
+
+                using const_iterator_type = typename vector_traits<S, P, IT, VT>::const_iterator_type;
+                using const_reverse_iterator_type = typename vector_traits<S, P, IT, VT>::const_reverse_iterator_type;
 
                 // Lattice type aliases
 
-                using typename VectorTraits<L_Max, S, P, IT, VT>::extent_type;
-                using typename VectorTraits<L_Max, S, P, IT, VT>::index_type;
-                using typename VectorTraits<L_Max, S, P, IT, VT>::index_internal_type;
+                using typename vector_traits<S, P, IT, VT>::extent_type;
+                using typename vector_traits<S, P, IT, VT>::index_type;
+                using typename vector_traits<S, P, IT, VT>::index_internal_type;
 
                 // Lattice static members
 
-                using VectorTraits<L_Max, S, P, IT, VT>::l_max;
-                using VectorTraits<L_Max, S, P, IT, VT>::s;
-                using VectorTraits<L_Max, S, P, IT, VT>::parity;
+                using vector_traits<S, P, IT, VT>::s;
+                using vector_traits<S, P, IT, VT>::parity;
 
                 // ConstExpression interface
 
@@ -98,6 +114,24 @@ namespace Multipole
                 ///
                 value_type  at(size_type i)         const { return static_cast<const expression_type&>(*this).at(i); }
 
+                // ConstIterator interface
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_iterator_type cbegin()             const { return static_cast<const expression_type&>(*this).cbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_iterator_type cend()               const { return static_cast<const expression_type&>(*this).cend(); }
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_reverse_iterator_type crbegin()    const { return static_cast<const expression_type&>(*this).crbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_reverse_iterator_type crend()      const { return static_cast<const expression_type&>(*this).crend(); }
+
                 // ConstLattice interface
 
                 /// <summary>Returns a pair of indecies representing the span of the series expansion.</summary>
@@ -112,8 +146,8 @@ namespace Multipole
 
             /// <summary>Read-write Expression Template base class of spherical expansion coefficient vectors to be implemented statically.</summary>
             ///
-            template <typename ET, std::size_t L_Max, std::size_t S, Parity P, typename IT, typename VT>
-            struct Expression : public ConstExpression<ET, L_Max, S, P, IT, VT>
+            template <typename ET, std::size_t S, parity P, typename IT, typename VT>
+            struct expression : public const_expression<ET, S, P, IT, VT>
             {
                 // Expression type aliases
 
@@ -121,24 +155,28 @@ namespace Multipole
 
                 // Common type aliases
 
-                using typename VectorTraits<L_Max, S, P, IT, VT>::value_type;
+                using typename vector_traits<S, P, IT, VT>::value_type;
 
                 // STL type aliases
 
-                using typename VectorTraits<L_Max, S, P, IT, VT>::container_type;
-                using typename VectorTraits<L_Max, S, P, IT, VT>::size_type;
+                using typename vector_traits<S, P, IT, VT>::container_type;
+                using typename vector_traits<S, P, IT, VT>::size_type;
+
+                // Iterator aliases
+
+                using iterator_type = typename expression_type::iterator_type;
+                using reverse_iterator_type = typename expression_type::reverse_iterator_type;
 
                 // Lattice type aliases
 
-                using typename VectorTraits<L_Max, S, P, IT, VT>::extent_type;
-                using typename VectorTraits<L_Max, S, P, IT, VT>::index_type;
-                using typename VectorTraits<L_Max, S, P, IT, VT>::index_internal_type;
+                using typename vector_traits<S, P, IT, VT>::extent_type;
+                using typename vector_traits<S, P, IT, VT>::index_type;
+                using typename vector_traits<S, P, IT, VT>::index_internal_type;
 
                 // Lattice static members
 
-                using VectorTraits<L_Max, S, P, IT, VT>::l_max;
-                using VectorTraits<L_Max, S, P, IT, VT>::s;
-                using VectorTraits<L_Max, S, P, IT, VT>::parity;
+                using vector_traits<S, P, IT, VT>::s;
+                using vector_traits<S, P, IT, VT>::parity;
 
                 // Expression interface
 
@@ -154,6 +192,24 @@ namespace Multipole
                 ///
                 value_type& at(size_type i) { return static_cast<expression_type&>(*this).at(i); }
 
+                // Iterator interface
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                iterator_type begin()             { return static_cast<const expression_type&>(*this).begin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                iterator_type end()               { return static_cast<const expression_type&>(*this).end(); }
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                reverse_iterator_type rbegin()    { return static_cast<const expression_type&>(*this).rbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                reverse_iterator_type rend()      { return static_cast<const expression_type&>(*this).rend(); }
+
                 // Lattice interface
 
                 /// <summary>Returns the coefficient corresponding to index <c>i</c>.</summary>
@@ -167,79 +223,95 @@ namespace Multipole
             /// <remarks>The Vector class template is not an Expression Template. There are seperate View classes for that.</remarks>
             /// <remarks>Also note that the Vector class slightly overallocates, due to the complexity of inverting the indexing function.</remarks>
             ///
-            template <std::size_t L_Max, std::size_t S, Parity P, typename IT, typename VT>
-            class Vector : public VectorTraits<L_Max, S, P, IT, VT>
+            template <std::size_t S, parity P, typename IT, typename VT>
+            class vector : public vector_traits<S, P, IT, VT>
             {
             public:
 
                 // Common type aliases
 
-                using typename VectorTraits<L_Max, S, P, IT, VT>::value_type;
+                using typename vector_traits<S, P, IT, VT>::value_type;
 
                 // STL type aliases
 
-                using typename VectorTraits<L_Max, S, P, IT, VT>::container_type;
-                using typename VectorTraits<L_Max, S, P, IT, VT>::size_type;
+                using typename vector_traits<S, P, IT, VT>::container_type;
+                using typename vector_traits<S, P, IT, VT>::size_type;
+
+                // ConstIterator aliases
+
+                using typename vector_traits<S, P, IT, VT>::const_iterator_type;
+                using typename vector_traits<S, P, IT, VT>::const_reverse_iterator_type;
+
+                // Iterator aliases
+
+                using typename vector_traits<S, P, IT, VT>::iterator_type;
+                using typename vector_traits<S, P, IT, VT>::reverse_iterator_type;
 
                 // Lattice type aliases
 
-                using typename VectorTraits<L_Max, S, P, IT, VT>::extent_type;
-                using typename VectorTraits<L_Max, S, P, IT, VT>::index_type;
-                using typename VectorTraits<L_Max, S, P, IT, VT>::index_internal_type;
+                using typename vector_traits<S, P, IT, VT>::extent_type;
+                using typename vector_traits<S, P, IT, VT>::index_type;
+                using typename vector_traits<S, P, IT, VT>::index_internal_type;
 
                 // Lattice static members
 
-                using VectorTraits<L_Max, S, P, IT, VT>::l_max;
-                using VectorTraits<L_Max, S, P, IT, VT>::s;
-                using VectorTraits<L_Max, S, P, IT, VT>::parity;
+                using vector_traits<S, P, IT, VT>::s;
+                using vector_traits<S, P, IT, VT>::parity;
 
-                static auto l_parity(const extent_type& ext) { return Multipole::stl::SWS::l_parity<Expression<Vector<L_Max, S, P, IT, VT>, L_Max, S, P, IT, VT>>(ext); }
+                static auto l_parity(const extent_type& ext) { return math::sws::l_parity<expression<vector<S, P, IT, VT>, S, P, IT, VT>>(ext); }
 
                 // Constructors / Destructors / Assignment operators
 
                 /// <summary>Default constructor.</summary>
                 /// <remarks>Default constructed objects are in an invalid state.</remarks>
                 ///
-                Vector() = default;
+                vector() = default;
 
                 /// <summary>Default copy constructor.</summary>
                 ///
-                Vector(const Vector& in) = default;
+                vector(const vector& in) = default;
 
                 /// <summary>Default move constructor.</summary>
                 ///
-                Vector(Vector&& in) = default;
+                vector(vector&& in) = default;
 
                 /// <summary>Default destructor.</summary>
                 ///
-                ~Vector() = default;
-                //~Vector() { std::cout << "Vector DTOR" << std::endl; };
+                ~vector() = default;
 
                 /// <summary>Default copy assignment operator.</summary>
                 ///
-                Vector& operator=(const Vector&) = default;
+                vector& operator=(const vector&) = default;
 
                 /// <summary>Default move assignment operator.</summary>
                 ///
-                Vector& operator=(Vector&&) = default;
+                vector& operator=(vector&&) = default;
 
                 ///<summary>Constructs a series expansion vector of <c>ext</c> size.</summary>
                 ///
-                Vector(const extent_type& ext) : m_extent(ext), m_data() { m_data.resize(distance(ext.initial(), ext.final())); }
+                //vector(const extent_type& ext) : m_extent(ext), m_data() { m_data.resize(distance(ext.initial(), ext.final())); }
+
+                ///<summary>Constructs a series expansion vector of <c>ext</c> size.</summary>
+                ///
+                vector(index_internal_type L) : m_extent({ 0, 0, s }, { L, L, s }), m_data() { m_data.resize(distance(m_extent.initial(), m_extent.final()) + 1); }
 
                 ///<summary>Constructs a series expansion vector from the expression <c>expr</c>.</summary>
                 ///
-                template <typename ConstVecExpr, std::size_t L_Max, std::size_t S, typename IndexType, typename ValueType>
-                Vector(const ConstExpression<ConstVecExpr, L_Max, S, P, IndexType, ValueType>& expr)
+                template <typename ConstVecExpr, std::size_t SS, typename IndexType, typename ValueType>
+                vector(const const_expression<ConstVecExpr, SS, P, IndexType, ValueType>& expr)
                 {
+                    static_assert(s == expr.s, "Spin weights of variables differ on the two sides of assignment.");
+
                     serial_evaluator(expr);
                 }
 
                 ///<summary>Constructs a series expansion vector from the expression <c>expr</c>.</summary>
                 ///
-                template <typename ConstVecExpr, std::size_t L_Max, std::size_t S, typename IndexType, typename ValueType>
-                Vector& operator=(const ConstExpression<ConstVecExpr, L_Max, S, P, IndexType, ValueType>& expr)
+                template <typename ConstVecExpr, std::size_t SS, typename IndexType, typename ValueType>
+                vector& operator=(const const_expression<ConstVecExpr, SS, P, IndexType, ValueType>& expr)
                 {
+                    static_assert(s == expr.s, "Spin weights of variables differ on the two sides of assignment.");
+
                     serial_evaluator(expr);
 
                     return *this;
@@ -282,6 +354,42 @@ namespace Multipole
                 /// <summary>Clears the contents of the Vector.</summary>
                 ///
                 void clear() { m_data.clear(); }
+
+                // ConstIterator interface
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_iterator_type cbegin()             const { return m_data.cbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_iterator_type cend()               const { return m_data.cend(); }
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_reverse_iterator_type crbegin()    const { return m_data.crbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_reverse_iterator_type crend()      const { return m_data.crend(); }
+
+                // Iterator interface
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                iterator_type begin() { return m_data.begin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                iterator_type end() { return m_data.end(); }
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                reverse_iterator_type rbegin() { return m_data.rbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                reverse_iterator_type rend() { return m_data.rend(); }
 
                 // ConstLattice interface
 
@@ -344,8 +452,8 @@ namespace Multipole
 
                 /// <summary>Initializes internal states and evaluates elements of the expression <c>expr</c> in a serial manner.</summary>
                 ///
-                template <typename ConstVecExpr, std::size_t L_Max, std::size_t S_Max, typename IndexType, typename ValueType>
-                void serial_evaluator(const ConstExpression<ConstVecExpr, L_Max, S_Max, P, IndexType, ValueType>& expr)
+                template <typename ConstVecExpr, std::size_t SS, typename IndexType, typename ValueType>
+                void serial_evaluator(const const_expression<ConstVecExpr, SS, P, IndexType, ValueType>& expr)
                 {
                     // Extract type from encapsulating expression
                     const ConstVecExpr& v = expr;
@@ -357,8 +465,16 @@ namespace Multipole
                         m_data.resize(v.size());
                     }
 
-                    for (index_type i = m_extent.initial(); m_extent.contains(i); ++i)
-                        this->at(i) = v.at(i);
+                    // After extents have been set to match, we can index with container_type::(const_)iterator
+                    std::copy(v.cbegin(), v.cend(), this->begin());
+
+                    // After resize, it's safe to utilize container_type::size_type for indexing.
+                    //std::for_each(stl::arithmetic_progression_iterator<size_type>(convert(m_extent.initial())),
+                    //              stl::arithmetic_progression_iterator<size_type>(convert(m_extent.final())),
+                    //              [this, &v](const size_type& i) mutable
+                    //{
+                    //    this->at(i) = v.at(i);
+                    //});
                 }
 
                 extent_type m_extent;
@@ -368,14 +484,15 @@ namespace Multipole
 
             /// <summary>Expression Template providing read-only access with reference semantics to the elements of a series expansion with storage.</summary>
             ///
-            template <std::size_t L_Max, std::size_t S_Max, Parity P, typename IT, typename VT>
-            class ConstView : public ConstExpression<ConstView<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>
+            template <std::size_t S, parity P, typename IT, typename VT>
+            class const_view : public const_expression<const_view<S, P, IT, VT>, S, P, IT, VT>
             {
             public:
 
                 // Expression type aliases
 
-                using expression_type = ConstExpression<ConstView<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>;
+                using expression_type = const_expression<const_view<S, P, IT, VT>, S, P, IT, VT>;
+                using trait_type = vector_traits<S, P, IT, VT>;
 
                 // Common type aliases
 
@@ -386,6 +503,11 @@ namespace Multipole
                 using typename expression_type::container_type;
                 using typename expression_type::size_type;
 
+                // ConstIterator aliases
+
+                using const_iterator_type = typename vector_traits<S, P, IT, VT>::const_iterator_type;
+                using const_reverse_iterator_type = typename vector_traits<S, P, IT, VT>::const_reverse_iterator_type;
+
                 // Lattice type aliases
 
                 using typename expression_type::extent_type;
@@ -394,13 +516,12 @@ namespace Multipole
 
                 // Lattice static members
 
-                using expression_type::l_max;
-                using expression_type::s_max;
+                using expression_type::s;
                 using expression_type::parity;
 
             private:
 
-                using vector_type = Vector<l_max, s_max, parity, index_internal_type, value_type>;
+                using vector_type = vector<s, parity, index_internal_type, value_type>;
                 using reference_type = std::reference_wrapper<const vector_type>;
 
             public:
@@ -410,33 +531,33 @@ namespace Multipole
                 /// <summary>Default constructor.</summary>
                 /// <remarks>Default constructor deleted, as underlying reference type cannot be default initialized.</remarks>
                 ///
-                ConstView() = delete;
+                const_view() = delete;
 
                 /// <summary>Default copy constructor.</summary>
                 ///
-                ConstView(const ConstView&) = default;
+                const_view(const const_view&) = default;
 
                 /// <summary>Default move constructor.</summary>
                 /// <remarks>Default move constructor deleted, as underlying reference type cannot be moved.</remarks>
                 ///
-                ConstView(ConstView&&) = default;//delete;
+                const_view(const_view&&) = default;//delete;
 
                 /// <summary>Default destructor.</summary>
                 ///
-                ~ConstView() = default;
+                ~const_view() = default;
 
                 /// <summary>Default copy assign operator.</summary>
                 ///
-                ConstView& operator=(const ConstView&) = default;
+                const_view& operator=(const const_view&) = default;
 
                 /// <summary>Default move assign operator.</summary>
                 /// <remarks>Default move assign operator deleted, as underlying reference type cannot be moved.</remarks>
                 ///
-                ConstView& operator=(ConstView&&) = delete;
+                const_view& operator=(const_view&&) = delete;
 
                 /// <summary>Constructs a <c>View</c> from a <c>Vector</c>.</summary>
                 ///
-                ConstView(const vector_type& v) : _v(std::cref(v)) {}
+                const_view(const vector_type& v) : _v(std::cref(v)) {}
 
                 // ConstSTL interface
 
@@ -451,6 +572,24 @@ namespace Multipole
                 /// <summary>Returns the <c>i</c>th element with bounds checking.</summary>
                 ///
                 const value_type& at(size_type i)         const { return _v.get().at(i); }
+
+                // ConstIterator interface
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_iterator_type cbegin()             const { return _v.get().cbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_iterator_type cend()               const { return _v.get().cend(); }
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_reverse_iterator_type crbegin()    const { return _v.get().crbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_reverse_iterator_type crend()      const { return _v.get().crend(); }
 
                 // ConstLattice interface
 
@@ -470,14 +609,14 @@ namespace Multipole
 
             /// <summary>Expression Template providing read-write access with reference semantics to the elements of a series expansion with storage.</summary>
             ///
-            template <std::size_t L_Max, std::size_t S_Max, Parity P, typename IT, typename VT>
-            class View : public Expression<View<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>
+            template <std::size_t S, parity P, typename IT, typename VT>
+            class view : public expression<view<S, P, IT, VT>, S, P, IT, VT>
             {
             public:
 
                 // Expression type aliases
 
-                using expression_type = Expression<View<L_Max, S_Max, P, IT, VT>, L_Max, S_Max, P, IT, VT>;
+                using expression_type = expression<view<S, P, IT, VT>, S, P, IT, VT>;
 
                 // Common type aliases
 
@@ -488,6 +627,16 @@ namespace Multipole
                 using typename expression_type::container_type;
                 using typename expression_type::size_type;
 
+                // ConstIterator aliases
+
+                using typename expression_type::const_iterator_type;
+                using typename expression_type::const_reverse_iterator_type;
+
+                // Iterator aliases
+
+                using typename expression_type::iterator_type;
+                using typename expression_type::reverse_iterator_type;
+
                 // Lattice type aliases
 
                 using typename expression_type::extent_type;
@@ -496,13 +645,12 @@ namespace Multipole
 
                 // Lattice static members
 
-                using expression_type::l_max;
-                using expression_type::s_max;
+                using expression_type::s;
                 using expression_type::parity;
 
             private:
 
-                using vector_type = Vector<l_max, s_max, parity, index_internal_type, value_type>;
+                using vector_type = vector<s, parity, index_internal_type, value_type>;
                 using reference_type = std::reference_wrapper<vector_type>;
 
             public:
@@ -512,33 +660,33 @@ namespace Multipole
                 /// <summary>Default constructor.</summary>
                 /// <remarks>Default constructor deleted, as underlying reference type cannot be default initialized.</remarks>
                 ///
-                View() = delete;
+                view() = delete;
 
                 /// <summary>Default copy constructor.</summary>
                 ///
-                View(const View&) = default;
+                view(const view&) = default;
 
                 /// <summary>Default move constructor.</summary>
                 /// <remarks>Default move constructor deleted, as underlying reference type cannot be moved.</remarks>
                 ///
-                View(View&&) = default;//delete;
+                view(view&&) = default;//delete;
 
                 /// <summary>Default destructor.</summary>
                 ///
-                ~View() = default;
+                ~view() = default;
 
                 /// <summary>Default copy assign operator.</summary>
                 ///
-                View& operator=(const View&) = default;
+                view& operator=(const view&) = default;
 
                 /// <summary>Default move assign operator.</summary>
                 /// <remarks>Default move assign operator deleted, as underlying reference type cannot be moved.</remarks>
                 ///
-                View& operator=(View&&) = default;//delete;
+                view& operator=(view&&) = default;
 
-                /// <summary>Constructs a <c>View</c> from a <c>Vector</c>.</summary>
+                /// <summary>Constructs a <c>view</c> from a <c>Vector</c>.</summary>
                 ///
-                explicit View(vector_type& v) : _v(std::ref(v)) {}
+                explicit view(vector_type& v) : _v(std::ref(v)) {}
 
                 // ConstSTL interface
 
@@ -563,6 +711,42 @@ namespace Multipole
                 /// <summary>Returns the <c>i</c>th element with bounds checking.</summary>
                 ///
                 value_type& at(size_type i) { return _v.get().at(i); }
+
+                // ConstIterator interface
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_iterator_type cbegin()             const { return _v.get().cbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_iterator_type cend()               const { return _v.get().cend(); }
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_reverse_iterator_type crbegin()    const { return _v.get().crbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_reverse_iterator_type crend()      const { return _v.get().crend(); }
+
+                // Iterator interface
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                iterator_type begin() { return _v.get().begin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                iterator_type end() { return _v.get().end(); }
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                iterator_type rbegin() { return _v.get().rbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                iterator_type rend() { return _v.get().rend(); }
 
                 // ConstLattice interface
 
@@ -589,13 +773,13 @@ namespace Multipole
             /// <summary>Expression Template performing Identity transformation on a series expansion.</summary>
             ///
             template <typename E>
-            class Id : public ConstExpression<Id<E>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>
+            class id : public const_expression<id<E>, E::s, E::parity, typename E::index_internal_type, typename E::value_type>
             {
             public:
 
                 // Expression type aliases
 
-                using expression_type = ConstExpression<Id<E>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>;
+                using expression_type = const_expression<id<E>, E::s, E::parity, typename E::index_internal_type, typename E::value_type>;
                 using outer_expression_type = E;
 
                 // Common type aliases
@@ -606,6 +790,11 @@ namespace Multipole
 
                 using typename expression_type::size_type;
 
+                // ConstIterator aliases
+
+                using typename expression_type::const_iterator_type;
+                using typename expression_type::const_reverse_iterator_type;
+
                 // Lattice type aliases
 
                 using typename expression_type::extent_type;
@@ -614,15 +803,14 @@ namespace Multipole
 
                 // Lattice static members
 
-                using expression_type::l_max;
-                using expression_type::s_max;
+                using expression_type::s;
                 using expression_type::parity;
 
                 // Constructors / Destructors / Assignment operators
 
-                /// <summary>Constructs an <c>Id</c> from a <c>ConstExpression</c>.</summary>
+                /// <summary>Constructs an <c>id</c> from a <c>const_epxression</c>.</summary>
                 ///
-                Id(const ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u)
+                id(const const_expression<E, E::s, E::parity, typename E::index_internal_type, typename E::value_type>& u)
                     : _u(static_cast<const E&>(u))
                 {}
 
@@ -639,6 +827,24 @@ namespace Multipole
                 /// <summary>Returns the <c>i</c>th element with bounds checking.</summary>
                 ///
                 value_type at(size_type i)         const { return _u.at(i); }
+
+                // ConstIterator interface
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_iterator_type cbegin()             const { return _u.cbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_iterator_type cend()               const { return _u.cend(); }
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_reverse_iterator_type crbegin()    const { return _u.crbegin(); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_reverse_iterator_type crend()      const { return _u.crend(); }
 
                 // ConstLattice interface
 
@@ -659,13 +865,18 @@ namespace Multipole
             /// <summary>Expression Template that evaluates a function object to yield series expansion coefficients.</summary>
             ///
             template <typename E, typename F>
-            struct Func : public ConstExpression<Func<E, F>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>
+            class func : public const_expression<func<E, F>, E::s, E::parity, typename E::index_internal_type, typename E::value_type>
             {
             public:
 
+                // ConstIterator forward-declarations
+
+                class bidir_const_iter;
+                class reverse_bidir_const_iter;
+
                 // Expression type aliases
 
-                using expression_type = ConstExpression<Func<E, F>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>;
+                using expression_type = const_expression<func<E, F>, E::s, E::parity, typename E::index_internal_type, typename E::value_type>;
 
                 // Common type alises
 
@@ -675,6 +886,11 @@ namespace Multipole
 
                 using typename expression_type::size_type;
 
+                // ConstIterator aliases
+
+                using const_iterator_type = bidir_const_iter;
+                using const_reverse_iterator_type = reverse_bidir_const_iter;
+
                 // Lattice type aliases
 
                 using typename expression_type::extent_type;
@@ -683,15 +899,285 @@ namespace Multipole
 
                 // Lattice static members
 
-                using expression_type::l_max;
-                using expression_type::s_max;
+                using expression_type::s;
                 using expression_type::parity;
+
+                // ConstIterator member classes
+
+            protected:
+
+                using iter_base = std::iterator<std::bidirectional_iterator_tag,
+                                                typename E::value_type,
+                                                std::ptrdiff_t,
+                                                const typename E::value_type*,
+                                                const typename E::value_type&>;
+
+            public:
+
+                /// <summary>Iterator class that invokes a function object when dereferencing.</summary>
+                ///
+                class bidir_const_iter : public iter_base
+                {
+                public:
+
+                    // Iterator aliases
+
+                    using typename iter_base::iterator_category;
+                    using typename iter_base::value_type;
+                    using typename iter_base::difference_type;
+                    using typename iter_base::pointer;
+                    using typename iter_base::reference;
+
+                private:
+
+                    using index_iter = typename extent_type::const_iterator_type;
+                    using index_type = typename index_iter::value_type;
+                    using func_type = F;
+
+                public:
+
+                    // Constructors / Destructors / Assignment operators
+
+                    /// <summary>Default constructor.</summary>
+                    /// <remarks>Default constructed objects are in an invalid state.</remarks>
+                    ///
+                    bidir_const_iter() = default;
+
+                    /// <summary>Default copy constructor.</summary>
+                    ///
+                    bidir_const_iter(const bidir_const_iter&) = default;
+
+                    /// <summary>Default move constructor.</summary>
+                    ///
+                    bidir_const_iter(bidir_const_iter&&) = default;
+
+                    /// <summary>Default destructor.</summary>
+                    ///
+                    ~bidir_const_iter() = default;
+
+                    /// <summary>Default copy assignment operator.</summary>
+                    ///
+                    bidir_const_iter& operator=(const bidir_const_iter&) = default;
+
+                    /// <summary>Default move assignment operator.</summary>
+                    ///
+                    bidir_const_iter& operator=(bidir_const_iter&&) = default;
+
+                    /// <summary>Index-functor pair constructor.</summary>
+                    ///
+                    bidir_const_iter(const index_type& index, const F& f) : _it(index), _f(f) {}
+
+                    // Iterator concept
+
+                    /// <summary>Dereference operator.</summary>
+                    ///
+                    const value_type operator*() const { return _f(*_it); }
+
+                    /// <summary>Prefix increment operator.</summary>
+                    ///
+                    bidir_const_iter& operator++()
+                    {
+                        ++_it;
+
+                        return *this;
+                    }
+
+                    // InputIterator concept
+
+                    /// <summary>Equality operator.</summary>
+                    /// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+                    ///
+                    inline bool operator==(const bidir_const_iter& rhs)
+                    {
+                        return _it == rhs._it;
+                    }
+
+                    /// <summary>Unequality operator.</summary>
+                    /// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+                    ///
+                    inline bool operator!=(const bidir_const_iter& rhs)
+                    {
+                        return _it != rhs._it;
+                    }
+
+                    /// <summary>Arrow operator.</summary>
+                    ///
+                    const pointer operator->() const { return &_f(*_it); }
+
+                    /// <summary>Postfix increment operator.</summary>
+                    ///
+                    bidir_const_iter operator++(int)
+                    {
+                        bidir_const_iter tmp = *this;
+
+                        ++*this;
+
+                        return tmp;
+                    }
+
+                    // BidirectionalIterator concept
+
+                    /// <summary>Prefix decrement operator.</summary>
+                    ///
+                    bidir_const_iter& operator--()
+                    {
+                        --_it;
+
+                        return *this;
+                    }
+
+                    /// <summary>Postfix decrement operator.</summary>
+                    ///
+                    bidir_const_iter operator--(int)
+                    {
+                        bidir_const_iter tmp = *this;
+
+                        --*this;
+
+                        return tmp;
+                    }
+
+                private:
+
+                    index_iter _it;
+                    func_type _f;
+                };
+
+                /// <summary>Iterator class that invokes a function object when dereferencing.</summary>
+                ///
+                class reverse_bidir_const_iter : public iter_base
+                {
+                public:
+
+                    // Iterator aliases
+
+                    using typename iter_base::iterator_category;
+                    using typename iter_base::value_type;
+                    using typename iter_base::difference_type;
+                    using typename iter_base::pointer;
+                    using typename iter_base::reference;
+
+                private:
+
+                    using index_iter = typename extent_type::reverse_const_iterator_type;
+                    using index_type = typename index_iter::value_type;
+                    using func_type = F;
+
+                public:
+
+                    // Constructors / Destructors / Assignment operators
+
+                    /// <summary>Default constructor.</summary>
+                    /// <remarks>Default constructed objects are in an invalid state.</remarks>
+                    ///
+                    reverse_bidir_const_iter() = default;
+
+                    /// <summary>Default copy constructor.</summary>
+                    ///
+                    reverse_bidir_const_iter(const reverse_bidir_const_iter&) = default;
+
+                    /// <summary>Default move constructor.</summary>
+                    ///
+                    reverse_bidir_const_iter(reverse_bidir_const_iter&&) = default;
+
+                    /// <summary>Default destructor.</summary>
+                    ///
+                    ~reverse_bidir_const_iter() = default;
+
+                    /// <summary>Default copy assignment operator.</summary>
+                    ///
+                    reverse_bidir_const_iter& operator=(const reverse_bidir_const_iter&) = default;
+
+                    /// <summary>Default move assignment operator.</summary>
+                    ///
+                    reverse_bidir_const_iter& operator=(reverse_bidir_const_iter&&) = default;
+
+                    /// <summary>Index-functor pair constructor.</summary>
+                    ///
+                    reverse_bidir_const_iter(const index_type& index, const F& f) : _it(index), _f(f) {}
+
+                    // Iterator concept
+
+                    /// <summary>Dereference operator.</summary>
+                    ///
+                    const value_type operator*() const { return _f(*_it); }
+
+                    /// <summary>Prefix increment operator.</summary>
+                    ///
+                    reverse_bidir_const_iter& operator++()
+                    {
+                        ++_it;
+
+                        return *this;
+                    }
+
+                    // InputIterator concept
+
+                    /// <summary>Equality operator.</summary>
+                    /// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+                    ///
+                    inline bool operator==(const reverse_bidir_const_iter& rhs)
+                    {
+                        return _it == rhs._it;
+                    }
+
+                    /// <summary>Unequality operator.</summary>
+                    /// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+                    ///
+                    inline bool operator!=(const reverse_bidir_const_iter& rhs)
+                    {
+                        return _it != rhs._it;
+                    }
+
+                    /// <summary>Arrow operator.</summary>
+                    ///
+                    const pointer operator->() const { return &_f(*_it); }
+
+                    /// <summary>Postfix increment operator.</summary>
+                    ///
+                    reverse_bidir_const_iter operator++(int)
+                    {
+                        reverse_bidir_const_iter tmp = *this;
+
+                        ++*this;
+
+                        return tmp;
+                    }
+
+                    // BidirectionalIterator concept
+
+                    /// <summary>Prefix decrement operator.</summary>
+                    ///
+                    reverse_bidir_const_iter& operator--()
+                    {
+                        --_it;
+
+                        return *this;
+                    }
+
+                    /// <summary>Postfix decrement operator.</summary>
+                    ///
+                    reverse_bidir_const_iter operator--(int)
+                    {
+                        reverse_bidir_const_iter tmp = *this;
+
+                        --*this;
+
+                        return tmp;
+                    }
+
+                private:
+
+                    index_iter _it;
+                    func_type _f;
+                };
+
 
                 // Constructors / Destructors / Assignment operators
 
-                /// <summary>Constructs a <c>Func</c> from an extent <c>ext</c> and a function object <c>f</c>.</summary>
+                /// <summary>Constructs a <c>func</c> from an extent <c>ext</c> and a function object <c>f</c>.</summary>
                 ///
-                Func(const extent_type ext, const F f) : m_ext(ext), m_f(f) {}
+                func(const extent_type ext, const F f) : m_ext(ext), m_f(f) {}
 
                 // ConstSTL interface
 
@@ -710,11 +1196,30 @@ namespace Multipole
                 ///
                 value_type at(size_type i)         const { static_assert(false, "This function is not yet implemented"); return _f.at(i); }
 
+                // ConstIterator interface
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_iterator_type cbegin()             const { return const_iterator_type(_ext.cbegin(), _f); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_iterator_type cend()               const { return const_iterator_type(_ext.cend(), _f); }
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_reverse_iterator_type crbegin()    const { return const_reverse_iterator_type(_ext.crbegin(), _f); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_reverse_iterator_type crend()      const { return const_reverse_iterator_type(_ext.crend(), _f); }
+
                 // ConstLattice interface
 
                 /// <summary>Returns a pair of indecies representing the span of the series expansion.</summary>
                 ///
                 extent_type extent()               const { return _ext; }
+
 
                 /// <summary>Returns the coefficient corresponding to index <c>i</c>.</summary>
                 ///
@@ -730,40 +1235,317 @@ namespace Multipole
             /// <summary>Expression Template that applies a unary function object to every element of a series expansion.</summary>
             ///
             template <typename E, typename F>
-            class Map : public ConstExpression<Map<E, F>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::value_type)>::type>
+            class map : public const_expression<map<E, F>, E::s, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::value_type)>::type>
             {
             public:
 
-                // Expression type aliases
+				// ConstIterator forward-declarations
 
-                using expression_type = ConstExpression<Map<E, F>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::value_type)>::type>;
-                using outer_expression_type = E;
+				class bidir_const_iter;
+				class reverse_bidir_const_iter;
 
-                // Common type aliases
+				// Expression type aliases
 
-                using typename expression_type::value_type;
+				using expression_type = const_expression<map<E, F>, E::s, E::parity, typename E::index_internal_type, typename std::result_of<F(typename E::value_type)>::type>;
+				using outer_expression_type = E;
 
-                // STL type aliases
+				// Common type aliases
 
-                using typename expression_type::size_type;
+				using typename expression_type::value_type;
 
-                // Lattice type aliases
+				// STL type aliases
 
-                using typename expression_type::extent_type;
-                using typename expression_type::index_type;
-                using typename expression_type::index_internal_type;
+				using typename expression_type::size_type;
 
-                // Lattice static members
+				// ConstIterator aliases
 
-                using expression_type::l_max;
-                using expression_type::s_max;
-                using expression_type::parity;
+				using const_iterator_type = bidir_const_iter;
+				using const_reverse_iterator_type = reverse_bidir_const_iter;
+
+				// Lattice type aliases
+
+				using typename expression_type::extent_type;
+				using typename expression_type::index_type;
+				using typename expression_type::index_internal_type;
+
+				// Lattice static members
+
+				using expression_type::s;
+				using expression_type::parity;
+
+                // ConstIterator member classes
+
+            protected:
+
+                using iter_base = std::iterator<std::bidirectional_iterator_tag,
+                                               typename std::result_of<F(typename E::value_type)>::type,
+                                               std::ptrdiff_t,
+                                               const typename std::result_of<F(typename E::value_type)>::type*,
+                                               const typename std::result_of<F(typename E::value_type)>::type&>;
+
+            public:
+
+                /// <summary>Iterator class that invokes a function object when dereferencing.</summary>
+                ///
+                class bidir_const_iter : public iter_base
+                {
+                public:
+
+                    // Iterator aliases
+
+                    using typename iter_base::iterator_category;
+                    using typename iter_base::value_type;
+                    using typename iter_base::difference_type;
+                    using typename iter_base::pointer;
+                    using typename iter_base::reference;
+
+                private:
+
+                    using iter_type = typename expression_type::const_iterator_type;
+                    using func_type = F;
+
+                public:
+
+                    // Constructors / Destructors / Assignment operators
+
+                    /// <summary>Default constructor.</summary>
+                    /// <remarks>Default constructed objects are in an invalid state.</remarks>
+                    ///
+                    bidir_const_iter() = default;
+
+                    /// <summary>Default copy constructor.</summary>
+                    ///
+                    bidir_const_iter(const bidir_const_iter&) = default;
+
+                    /// <summary>Default move constructor.</summary>
+                    ///
+                    bidir_const_iter(bidir_const_iter&&) = default;
+
+                    /// <summary>Default destructor.</summary>
+                    ///
+                    ~bidir_const_iter() = default;
+
+                    /// <summary>Default copy assignment operator.</summary>
+                    ///
+                    bidir_const_iter& operator=(const bidir_const_iter&) = default;
+
+                    /// <summary>Default move assignment operator.</summary>
+                    ///
+                    bidir_const_iter& operator=(bidir_const_iter&&) = default;
+
+                    /// <summary>Index-functor pair constructor.</summary>
+                    ///
+                    bidir_const_iter(const iter_type& it, const F& f) : _it(it), _f(f) {}
+
+                    // Iterator concept
+
+                    /// <summary>Dereference operator.</summary>
+                    ///
+                    const value_type operator*() const { return _f(*_it); }
+
+                    /// <summary>Prefix increment operator.</summary>
+                    ///
+                    bidir_const_iter& operator++()
+                    {
+                        ++_it;
+
+                        return *this;
+                    }
+
+                    // InputIterator concept
+
+                    /// <summary>Equality operator.</summary>
+                    /// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+                    ///
+                    inline bool operator==(const bidir_const_iter& rhs)
+                    {
+                        return _it == rhs._it;
+                    }
+
+                    /// <summary>Unequality operator.</summary>
+                    /// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+                    ///
+                    inline bool operator!=(const bidir_const_iter& rhs)
+                    {
+                        return _it != rhs._it;
+                    }
+
+                    /// <summary>Arrow operator.</summary>
+                    ///
+                    const pointer operator->() const { return &_f(*_it); }
+
+                    /// <summary>Postfix increment operator.</summary>
+                    ///
+                    bidir_const_iter operator++(int)
+                    {
+                        bidir_const_iter tmp = *this;
+
+                        ++*this;
+
+                        return tmp;
+                    }
+
+                    // BidirectionalIterator concept
+
+                    /// <summary>Prefix decrement operator.</summary>
+                    ///
+                    bidir_const_iter& operator--()
+                    {
+                        --_it;
+
+                        return *this;
+                    }
+
+                    /// <summary>Postfix decrement operator.</summary>
+                    ///
+                    bidir_const_iter operator--(int)
+                    {
+                        bidir_const_iter tmp = *this;
+
+                        --*this;
+
+                        return tmp;
+                    }
+
+                private:
+
+                    iter_type _it;
+                    const func_type _f;
+                };
+
+				/// <summary>Iterator class that invokes a function object when dereferencing.</summary>
+				///
+                class reverse_bidir_const_iter : public iter_base
+                {
+                public:
+
+                    // Iterator aliases
+
+                    using typename iter_base::iterator_category;
+                    using typename iter_base::value_type;
+                    using typename iter_base::difference_type;
+                    using typename iter_base::pointer;
+                    using typename iter_base::reference;
+
+                private:
+
+					using iter_type = typename expression_type::const_reverse_iterator_type;
+                    using func_type = F;
+
+                public:
+
+                    // Constructors / Destructors / Assignment operators
+
+                    /// <summary>Default constructor.</summary>
+                    /// <remarks>Default constructed objects are in an invalid state.</remarks>
+                    ///
+					reverse_bidir_const_iter() = default;
+
+                    /// <summary>Default copy constructor.</summary>
+                    ///
+					reverse_bidir_const_iter(const reverse_bidir_const_iter&) = default;
+
+                    /// <summary>Default move constructor.</summary>
+                    ///
+					reverse_bidir_const_iter(reverse_bidir_const_iter&&) = default;
+
+                    /// <summary>Default destructor.</summary>
+                    ///
+                    ~reverse_bidir_const_iter() = default;
+
+                    /// <summary>Default copy assignment operator.</summary>
+                    ///
+					reverse_bidir_const_iter& operator=(const reverse_bidir_const_iter&) = default;
+
+                    /// <summary>Default move assignment operator.</summary>
+                    ///
+					reverse_bidir_const_iter& operator=(reverse_bidir_const_iter&&) = default;
+
+                    /// <summary>Index-functor pair constructor.</summary>
+                    ///
+					reverse_bidir_const_iter(const iter_type& it, const F& f) : _it(it), _f(f) {}
+
+                    // Iterator concept
+
+                    /// <summary>Dereference operator.</summary>
+                    ///
+                    const value_type operator*() const { return _f(*_it); }
+
+                    /// <summary>Prefix increment operator.</summary>
+                    ///
+					reverse_bidir_const_iter& operator++()
+                    {
+                        ++_it;
+
+                        return *this;
+                    }
+
+                    // InputIterator concept
+
+                    /// <summary>Equality operator.</summary>
+                    /// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+                    ///
+                    inline bool operator==(const bidir_const_iter& rhs)
+                    {
+                        return _it == rhs._it;
+                    }
+
+                    /// <summary>Unequality operator.</summary>
+                    /// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+                    ///
+                    inline bool operator!=(const bidir_const_iter& rhs)
+                    {
+                        return _it != rhs._it;
+                    }
+
+                    /// <summary>Arrow operator.</summary>
+                    ///
+                    const pointer operator->() const { return &_f(*_it); }
+
+                    /// <summary>Postfix increment operator.</summary>
+                    ///
+					reverse_bidir_const_iter operator++(int)
+                    {
+                        bidir_const_iter tmp = *this;
+
+                        ++*this;
+
+                        return tmp;
+                    }
+
+                    // BidirectionalIterator concept
+
+                    /// <summary>Prefix decrement operator.</summary>
+                    ///
+					reverse_bidir_const_iter& operator--()
+                    {
+                        --_it;
+
+                        return *this;
+                    }
+
+                    /// <summary>Postfix decrement operator.</summary>
+                    ///
+					reverse_bidir_const_iter operator--(int)
+                    {
+                        bidir_const_iter tmp = *this;
+
+                        --*this;
+
+                        return tmp;
+                    }
+
+                private:
+
+                    iter_type _it;
+                    const func_type _f;
+                };
 
                 // Constructors / Destructors / Assignment operators
 
                 /// <summary>Constructs a <c>Map</c> from an expression <c>u</c> and a function object <c>f</c>.</summary>
                 ///
-                Map(const ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u, const F f)
+                map(const const_expression<E, E::s, E::parity, typename E::index_internal_type, typename E::value_type>& u, const F f)
                     : _u(static_cast<const E&>(u))
                     , _f(f)
                 {}
@@ -783,6 +1565,24 @@ namespace Multipole
                 /// <remarks>This function cannot be implemented with a single function object.</remarks>
                 ///
                 value_type at(size_type i)         const { static_assert(false, "This function cannot be implemented with a single function object"); return _f(_u.at(i)); }
+
+                // ConstIterator interface
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_iterator_type cbegin()             const { return const_iterator_type(_u.cbegin(), _f); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_iterator_type cend()               const { return const_iterator_type(_u.cend(), _f); }
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_reverse_iterator_type crbegin()    const { return const_reverse_iterator_type(_u.crbegin(), _f); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_reverse_iterator_type crend()      const { return const_reverse_iterator_type(_u.crend(), _f); }
 
                 // ConstLattice interface
 
@@ -804,42 +1604,331 @@ namespace Multipole
             /// <summary>Expression Template that applies a binary function object to every element of two series expansions to yield the result.</summary>
             ///
             template <typename E1, typename E2, typename F>
-            class Zip : public ConstExpression<Zip<E1, E2, F>, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>
+            class zip : public const_expression<zip<E1, E2, F>, E1::s, E1::parity, typename E1::index_internal_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>
             {
             public:
 
-                // Expression type aliases
+				// ConstIterator forward-declarations
 
-                using expression_type = ConstExpression<Zip<E1, E2, F>, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>;
-                using outer_expression_type1 = E1;
-                using outer_expression_type2 = E2;
+				class bidir_const_iter;
+				class reverse_bidir_const_iter;
 
-                // Common typedefs
+				// Expression type aliases
 
-                using typename expression_type::value_type;
+				using expression_type = const_expression<zip<E1, E2, F>, E1::s, E1::parity, typename E1::index_internal_type, typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type>;
+				using outer_expression_type1 = E1;
+				using outer_expression_type2 = E2;
 
-                // STL typedefs
+				// Common typedefs
 
-                using typename expression_type::size_type;
+				using typename expression_type::value_type;
 
-                // Lattice typedefs
+				// STL typedefs
 
-                using typename expression_type::extent_type;
-                using typename expression_type::index_type;
-                using typename expression_type::index_internal_type;
+				using typename expression_type::size_type;
 
-                // Lattice static members
+				// ConstIterator aliases
 
-                using expression_type::l_max;
-                using expression_type::s_max;
-                using expression_type::parity;
+				using const_iterator_type = bidir_const_iter;
+				using const_reverse_iterator_type = reverse_bidir_const_iter;
+
+				// Lattice typedefs
+
+				using typename expression_type::extent_type;
+				using typename expression_type::index_type;
+				using typename expression_type::index_internal_type;
+
+				// Lattice static members
+
+				using expression_type::s;
+				using expression_type::parity;
+
+				// ConstIterator member classes
+
+            protected:
+
+                using iter_base = std::iterator<std::bidirectional_iterator_tag,
+                                                typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type,
+                                                std::ptrdiff_t,
+                                                const typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type*,
+                                                const typename std::result_of<F(typename E1::value_type, typename E2::value_type)>::type&>;
+
+            public:
+
+				/// <summary>Iterator class that invokes a function object when dereferencing.</summary>
+				///
+				class bidir_const_iter : public iter_base
+				{
+				public:
+
+                    // Iterator aliases
+
+                    using typename iter_base::iterator_category;
+                    using typename iter_base::value_type;
+                    using typename iter_base::difference_type;
+                    using typename iter_base::pointer;
+                    using typename iter_base::reference;
+
+                private:
+
+					using iter_type1 = typename E1::expression_type::const_iterator_type;
+					using iter_type2 = typename E2::expression_type::const_iterator_type;
+					using func_type = F;
+
+                public:
+
+					// Constructors / Destructors / Assignment operators
+
+					/// <summary>Default constructor.</summary>
+					/// <remarks>Default constructed objects are in an invalid state.</remarks>
+					///
+					bidir_const_iter() = default;
+
+					/// <summary>Default copy constructor.</summary>
+					///
+					bidir_const_iter(const bidir_const_iter&) = default;
+
+					/// <summary>Default move constructor.</summary>
+					///
+					bidir_const_iter(bidir_const_iter&&) = default;
+
+					/// <summary>Default destructor.</summary>
+					///
+					~bidir_const_iter() = default;
+
+					/// <summary>Default copy assignment operator.</summary>
+					///
+					bidir_const_iter& operator=(const bidir_const_iter&) = default;
+
+					/// <summary>Default move assignment operator.</summary>
+					///
+					bidir_const_iter& operator=(bidir_const_iter&&) = default;
+
+					/// <summary>Index-functor pair constructor.</summary>
+					///
+					bidir_const_iter(const iter_type1& it1, const iter_type2& it2, const F& f) : _it1(it1), _it2(it2), _f(f) {}
+
+					// Iterator concept
+
+					/// <summary>Dereference operator.</summary>
+					///
+					const value_type operator*() const { return _f(*_it1, *_it2); }
+
+					/// <summary>Prefix increment operator.</summary>
+					///
+					bidir_const_iter& operator++()
+					{
+						++_it1;
+                        ++_it2;
+
+						return *this;
+					}
+
+					// InputIterator concept
+
+					/// <summary>Equality operator.</summary>
+					/// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+					///
+					inline bool operator==(const bidir_const_iter& rhs)
+					{
+						return (_it1 == rhs._it1) &&
+                               (_it2 == rhs._it2);
+					}
+
+					/// <summary>Unequality operator.</summary>
+					/// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+					///
+					inline bool operator!=(const bidir_const_iter& rhs)
+					{
+						return (_it1 != rhs._it1) ||
+                               (_it2 != rhs._it2);
+					}
+
+					/// <summary>Arrow operator.</summary>
+					///
+					const pointer operator->() const { return &_f(*_it1, *_it2); }
+
+					/// <summary>Postfix increment operator.</summary>
+					///
+					bidir_const_iter operator++(int)
+					{
+						bidir_const_iter tmp = *this;
+
+						++*this;
+
+						return tmp;
+					}
+
+					// BidirectionalIterator concept
+
+					/// <summary>Prefix decrement operator.</summary>
+					///
+					bidir_const_iter& operator--()
+					{
+						--_it1;
+                        --_it2;
+
+						return *this;
+					}
+
+					/// <summary>Postfix decrement operator.</summary>
+					///
+					bidir_const_iter operator--(int)
+					{
+						bidir_const_iter tmp = *this;
+
+						--*this;
+
+						return tmp;
+					}
+
+				private:
+
+					iter_type1 _it1;
+					iter_type2 _it2;
+					const func_type _f;
+				};
+
+				/// <summary>Iterator class that invokes a function object when dereferencing.</summary>
+				///
+				class reverse_bidir_const_iter : public iter_base
+				{
+				public:
+
+                    // Iterator aliases
+
+                    using typename iter_base::iterator_category;
+                    using typename iter_base::value_type;
+                    using typename iter_base::difference_type;
+                    using typename iter_base::pointer;
+                    using typename iter_base::reference;
+
+                private:
+
+                    using iter_type1 = typename E1::expression_type::const_reverse_iterator_type;
+                    using iter_type2 = typename E2::expression_type::const_reverse_iterator_type;
+					using func_type = F;
+
+                public:
+
+					// Constructors / Destructors / Assignment operators
+
+					/// <summary>Default constructor.</summary>
+					/// <remarks>Default constructed objects are in an invalid state.</remarks>
+					///
+					reverse_bidir_const_iter() = default;
+
+					/// <summary>Default copy constructor.</summary>
+					///
+					reverse_bidir_const_iter(const reverse_bidir_const_iter&) = default;
+
+					/// <summary>Default move constructor.</summary>
+					///
+					reverse_bidir_const_iter(reverse_bidir_const_iter&&) = default;
+
+					/// <summary>Default destructor.</summary>
+					///
+					~reverse_bidir_const_iter() = default;
+
+					/// <summary>Default copy assignment operator.</summary>
+					///
+					reverse_bidir_const_iter& operator=(const reverse_bidir_const_iter&) = default;
+
+					/// <summary>Default move assignment operator.</summary>
+					///
+					reverse_bidir_const_iter& operator=(reverse_bidir_const_iter&&) = default;
+
+					/// <summary>Index-functor pair constructor.</summary>
+					///
+					reverse_bidir_const_iter(const iter_type1& it1, const iter_type2& it2, const F& f) : _it1(it1), _it2(it2), _f(f) {}
+
+					// Iterator concept
+
+					/// <summary>Dereference operator.</summary>
+					///
+					const reference operator*() const { return _f(*_it1, *_it2); }
+
+					/// <summary>Prefix increment operator.</summary>
+					///
+					reverse_bidir_const_iter& operator++()
+					{
+						++_it1;
+                        ++_it2;
+
+						return *this;
+					}
+
+					// InputIterator concept
+
+					/// <summary>Equality operator.</summary>
+					/// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+					///
+					inline bool operator==(const bidir_const_iter& rhs)
+					{
+						return (_it1 == rhs._it1) &&
+                               (_it2 == rhs._it2);
+					}
+
+					/// <summary>Unequality operator.</summary>
+					/// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+					///
+					inline bool operator!=(const bidir_const_iter& rhs)
+					{
+						return (_it1 != rhs._it1) ||
+                               (_it2 != rhs._it2);
+					}
+
+					/// <summary>Arrow operator.</summary>
+					///
+					const pointer operator->() const { return &_f(*_it1, *_it2); }
+
+					/// <summary>Postfix increment operator.</summary>
+					///
+					reverse_bidir_const_iter operator++(int)
+					{
+						bidir_const_iter tmp = *this;
+
+						++*this;
+
+						return tmp;
+					}
+
+					// BidirectionalIterator concept
+
+					/// <summary>Prefix decrement operator.</summary>
+					///
+					reverse_bidir_const_iter& operator--()
+					{
+						--_it1;
+                        --_it2;
+
+						return *this;
+					}
+
+					/// <summary>Postfix decrement operator.</summary>
+					///
+					reverse_bidir_const_iter operator--(int)
+					{
+						bidir_const_iter tmp = *this;
+
+						--*this;
+
+						return tmp;
+					}
+
+				private:
+
+					iter_type1 _it1;
+                    iter_type2 _it2;
+					const func_type _f;
+				};
 
                 // Constructors / Destructors / Assignment operators
 
                 /// <summary>Constructs a <c>Zip</c> from two possibly varying expressions <c>u</c> and <c>v</c> and a function object <c>f</c>.</summary>
                 ///
-                Zip(const ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& u,
-                    const ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& v,
+                zip(const const_expression<E1, E1::s, E1::parity, typename E1::index_internal_type, typename E1::value_type>& u,
+                    const const_expression<E2, E2::s, E2::parity, typename E2::index_internal_type, typename E2::value_type>& v,
                     const F f)
                     : _u(static_cast<const E1&>(u))
                     , _v(static_cast<const E2&>(v))
@@ -847,9 +1936,8 @@ namespace Multipole
                 {
                     //std::cout << "sw::Zip _u = " << _u.extent() << " _v = " << _v.extent() << std::endl;
 
-                    static_assert(E1::l_max == E2::l_max, "SWS::Zip(l_max value mismatch)");
-                    static_assert(E1::s_max == E2::s_max, "SWS::Zip(s_max value mismatch)");
-                    static_assert(E1::parity == E2::parity, "SWS::Zip(parity value mismatch)");
+                    static_assert(E1::s == E2::s, "sws::zip(s value mismatch)");
+                    static_assert(E1::parity == E2::parity, "sws::zip(parity value mismatch)");
 
                     assert(_u.extent() == _v.extent());
                 }
@@ -870,6 +1958,24 @@ namespace Multipole
                 ///
                 value_type at(size_type i)         const { static_assert(false, "This function cannot be implemented with a single function object"); return _f(_u.at(i), _v.at(i)); }
 
+                // ConstIterator interface
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_iterator_type cbegin()             const { return const_iterator_type(_u.cbegin(), _v.cbegin(), _f); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_iterator_type cend()               const { return const_iterator_type(_u.cend(), _v.cend(), _f); }
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_reverse_iterator_type crbegin()    const { return const_reverse_iterator_type(_u.crbegin(), _v.crbegin(), _f); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_reverse_iterator_type crend()      const { return const_reverse_iterator_type(_u.crend(), _v.crend(), _f); }
+
                 // ConstLattice interface
 
                 /// <summary>Returns a pair of indecies representing the span of the series expansion.</summary>
@@ -889,33 +1995,50 @@ namespace Multipole
             
             /// <summary>Namespace for tags of the spin stepper operator.</summary>
             ///
-            namespace Spin
+            namespace spin
             {
-                struct Up {};
-                struct Down {};
+                struct up {};
+                struct down {};
             }
 
             namespace impl
             {
+                /// <summary>Unimplemented helper to workaround unconditional widening of results due to double return types of common math functions with Integral params.</summary>
+                ///
                 template <typename VT> struct realify;
+
                 template <> struct realify<float> { using type = float; };
                 template <> struct realify<double> { using type = double; };
                 template <> struct realify<std::complex<float>> { using type = float; };
                 template <> struct realify<std::complex<double>> { using type = double; };
 
-                /// <summary>Unimplemented Exression Template of the spin stepping edth operator.</summary>
+                /// <summary>Unimplemented helper of the spin stepping edth operator Exression Template for function partial specialization.</summary>
                 ///
-                template <typename S> struct SpinStepper;
+                template <typename E, typename S> struct spin_stepper;
 
                 /// <summary>Specialization of the spin stepping helper function for the Expression Template implementing the spin-up operator.</summary>
                 /// <note>J. N. Goldberg, A. J. Macfarlane, E. T. Newman, F. Rohrlich, and E. C. G. Sudarshan Spin‐s Spherical Harmonics and ð, eq. (2.7a)</note>
                 ///
-                template <> struct SpinStepper<Spin::Up>
+                template <typename E> struct spin_stepper<E, spin::up>
                 {
-                    template <typename E>
+                    static typename E::index_internal_type s = E::s + 1;
+
+                    static auto factor(const typename E::index_type& i)
+                    {
+                        using ii_type = typename E::index_internal_type;
+
+                        ii_type result = (i.l - i.s) * (i.l + i.s + static_cast<ii_type>(1));
+
+                        if (result < static_cast<ii_type>(0))
+                            return static_cast<ii_type>(0);
+                        else
+                            return result;
+                    }
+                    /*
                     static auto at(const E& e, const typename E::index_type& i)
                     {
-                        typename E::value_type result = 0;
+                        using result_type = typename E::value_type;
+                        result_type result = 0;
 
                         if (i.s == std::min(i.l, E::s_max)) return result;
 
@@ -925,22 +2048,36 @@ namespace Multipole
 
                         auto index = i;
                         
-                        result = static_cast<decltype(result)>(static_cast<typename realify<decltype(result)>::type>(std::sqrt(factor_sq)) * e.at(++index));
+                        result = static_cast<result_type>(static_cast<typename realify<result_type>::type>(std::sqrt(factor_sq)) * e.at(++index));
 
                         return result;
-                    }
+                    }*/
                 };
 
 
                 /// <summary>Specialization of the spin stepping helper function for the Expression Template implementing the spin-down operator.</summary>
                 /// <note>J. N. Goldberg, A. J. Macfarlane, E. T. Newman, F. Rohrlich, and E. C. G. Sudarshan Spin‐s Spherical Harmonics and ð, eq. (2.7b)</note>
                 ///
-                template <> struct SpinStepper<Spin::Down>
+                template <typename E> struct spin_stepper<E, spin::down>
                 {
-                    template <typename E>
+                    static typename E::index_internal_type s = E::s - 1;
+
+                    static auto factor(const typename E::index_type& i)
+                    {
+                        using ii_type = typename E::index_internal_type;
+
+                        ii_type result = (i.l + i.s) * (i.l - i.s + static_cast<ii_type>(1));
+
+                        if (result < static_cast<ii_type>(0))
+                            return static_cast<ii_type>(0);
+                        else
+                            return result;
+                    }
+                    /*
                     static auto at(const E& e, const typename E::index_type& i)
                     {
-                        typename E::value_type result = 0;
+                        using result_type = typename E::value_type;
+                        result_type result = 0;
 
                         if (i.s == std::max(-i.l, -E::s_max)) return result;
 
@@ -950,10 +2087,10 @@ namespace Multipole
 
                         auto index = i;
 
-                        result = static_cast<decltype(result)>(-static_cast<typename realify<decltype(result)>::type>(std::sqrt(factor_sq)) * e.at(--index));
+                        result = static_cast<result_type>(-static_cast<typename realify<result_type>::type>(std::sqrt(factor_sq)) * e.at(--index));
 
                         return result;
-                    }
+                    }*/
                 };
 
             } // namespace impl
@@ -962,13 +2099,18 @@ namespace Multipole
             /// <summary>Expression Template that applies applies the spin stepping operator (edth) to a series expansion.</summary>
             ///
             template <typename E, typename S>
-            class Edth : public ConstExpression<Edth<E, S>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>
+            class edth : public const_expression<edth<E, S>, impl::spin_stepper<E, S>::s, E::parity, typename E::index_internal_type, typename E::value_type>
             {
             public:
 
-                // Expression type aliases
+                // ConstIterator forward-declarations
 
-                using expression_type = ConstExpression<Edth<E, S>, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>;
+                class bidir_const_iter;
+                class reverse_bidir_const_iter;
+
+                // Expression type aliases 
+
+                using expression_type = const_expression<edth<E, S>, impl::spin_stepper<E, S>::s, E::parity, typename E::index_internal_type, typename E::value_type>;
                 using outer_expression_type = E;
 
                 // Common typedefs
@@ -979,6 +2121,11 @@ namespace Multipole
 
                 using typename expression_type::size_type;
 
+                // ConstIterator aliases
+
+                using const_iterator_type = bidir_const_iter;
+                using const_reverse_iterator_type = reverse_bidir_const_iter;
+
                 // Lattice typedefs
 
                 using typename expression_type::extent_type;
@@ -987,15 +2134,297 @@ namespace Multipole
 
                 // Lattice static members
 
-                using expression_type::l_max;
-                using expression_type::s_max;
+                using expression_type::s;
                 using expression_type::parity;
+
+                // ConstIterator member classes
+
+            protected:
+
+                using iter_base = std::iterator<std::bidirectional_iterator_tag,
+                                                value_type,
+                                                std::ptrdiff_t,
+                                                value_type*,
+                                                value_type&>;
+
+            public:
+
+                /// <summary>Iterator class that invokes a function object when dereferencing.</summary>  
+                ///
+                class bidir_const_iter : public iter_base
+                {
+                public:
+
+                    // Iterator aliases
+
+                    using typename iter_base::iterator_category;
+                    using typename iter_base::value_type;
+                    using typename iter_base::difference_type;
+                    using typename iter_base::pointer;
+                    using typename iter_base::reference;
+
+                private:
+
+                    using index_iter_type = typename extent_type::const_iterator_type;
+                    using iter_type = typename expression_type::const_iterator_type;
+
+                public:
+
+                    // Constructors / Destructors / Assignment operators
+
+                    /// <summary>Default constructor.</summary>
+                    /// <remarks>Default constructed objects are in an invalid state.</remarks>
+                    ///
+                    bidir_const_iter() = default;
+
+                    /// <summary>Default copy constructor.</summary>
+                    ///
+                    bidir_const_iter(const bidir_const_iter&) = default;
+
+                    /// <summary>Default move constructor.</summary>
+                    ///
+                    bidir_const_iter(bidir_const_iter&&) = default;
+
+                    /// <summary>Default destructor.</summary>
+                    ///
+                    ~bidir_const_iter() = default;
+
+                    /// <summary>Default copy assignment operator.</summary>
+                    ///
+                    bidir_const_iter& operator=(const bidir_const_iter&) = default;
+
+                    /// <summary>Default move assignment operator.</summary>
+                    ///
+                    bidir_const_iter& operator=(bidir_const_iter&&) = default;
+
+                    /// <summary>Index-functor pair constructor.</summary>
+                    ///
+                    bidir_const_iter(const index_iter_type& idx, const iter_type& it) : _idx(idx), _it(it) {}
+
+                    // Iterator concept
+
+                    /// <summary>Dereference operator.</summary>
+                    ///
+                    const value_type operator*() const { return std::sqrt(impl::spin_stepper<E, S>::factor(static_cast<typename impl::realify<value_type>::type>(*idx))) * (*it); }
+
+                    /// <summary>Prefix increment operator.</summary>
+                    ///
+                    bidir_const_iter& operator++()
+                    {
+                        ++_idx;
+                        ++_it;
+
+                        return *this;
+                    }
+
+                    // InputIterator concept
+
+                    /// <summary>Equality operator.</summary>
+                    /// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+                    ///
+                    inline bool operator==(const bidir_const_iter& rhs)
+                    {
+                        return _idx == rhs._idx && _it == rhs._it;
+                    }
+
+                    /// <summary>Unequality operator.</summary>
+                    /// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+                    ///
+                    inline bool operator!=(const bidir_const_iter& rhs)
+                    {
+                        return _idx != rhs._idx || _it != rhs._it;
+                    }
+
+                    /// <summary>Arrow operator.</summary>
+                    ///
+                    const pointer operator->() const
+                    {
+                        static_assert(false, "This function prototype is invalid to instantiate. Returning pointer to temporary has no meaning.");
+
+                        return nullptr;
+                    }
+
+                    /// <summary>Postfix increment operator.</summary>
+                    ///
+                    bidir_const_iter operator++(int)
+                    {
+                        bidir_const_iter tmp = *this;
+
+                        ++*this;
+
+                        return tmp;
+                    }
+
+                    // BidirectionalIterator concept
+
+                    /// <summary>Prefix decrement operator.</summary>
+                    ///
+                    bidir_const_iter& operator--()
+                    {
+                        --_idx;
+                        --_it;
+
+                        return *this;
+                    }
+
+                    /// <summary>Postfix decrement operator.</summary>
+                    ///
+                    bidir_const_iter operator--(int)
+                    {
+                        bidir_const_iter tmp = *this;
+
+                        --*this;
+
+                        return tmp;
+                    }
+
+                private:
+
+                    index_iter_type _idx;
+                    iter_type _it;
+                };
+
+                /// <summary>Iterator class that invokes a function object when dereferencing.</summary>
+                ///
+                class reverse_bidir_const_iter : public iter_base
+                {
+                public:
+
+                    // Iterator aliases
+
+                    using typename iter_base::iterator_category;
+                    using typename iter_base::value_type;
+                    using typename iter_base::difference_type;
+                    using typename iter_base::pointer;
+                    using typename iter_base::reference;
+
+                private:
+
+                    using index_iter_type = typename extent_type::const_reverse_iterator_type;
+                    using iter_type = typename expression_type::const_reverse_iterator_type;
+
+                public:
+
+                    // Constructors / Destructors / Assignment operators
+
+                    /// <summary>Default constructor.</summary>
+                    /// <remarks>Default constructed objects are in an invalid state.</remarks>
+                    ///
+                    reverse_bidir_const_iter() = default;
+
+                    /// <summary>Default copy constructor.</summary>
+                    ///
+                    reverse_bidir_const_iter(const reverse_bidir_const_iter&) = default;
+
+                    /// <summary>Default move constructor.</summary>
+                    ///
+                    reverse_bidir_const_iter(reverse_bidir_const_iter&&) = default;
+
+                    /// <summary>Default destructor.</summary>
+                    ///
+                    ~reverse_bidir_const_iter() = default;
+
+                    /// <summary>Default copy assignment operator.</summary>
+                    ///
+                    reverse_bidir_const_iter& operator=(const reverse_bidir_const_iter&) = default;
+
+                    /// <summary>Default move assignment operator.</summary>
+                    ///
+                    reverse_bidir_const_iter& operator=(reverse_bidir_const_iter&&) = default;
+
+                    /// <summary>Index-functor pair constructor.</summary>
+                    ///
+                    reverse_bidir_const_iter(const index_iter_type& idx, const iter_type& it) : _idx(idx), _it(it) {}
+
+                    // Iterator concept
+
+                    /// <summary>Dereference operator.</summary>
+                    ///
+                    const value_type operator*() const { return std::sqrt(impl::spin_stepper<E, S>::factor(static_cast<typename impl::realify<value_type>::type>(*idx))) * (*it);
+                    }
+
+                    /// <summary>Prefix increment operator.</summary>
+                    ///
+                    reverse_bidir_const_iter& operator++()
+                    {
+                        ++_idx;
+                        ++_it;
+
+                        return *this;
+                    }
+
+                    // InputIterator concept
+
+                    /// <summary>Equality operator.</summary>
+                    /// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+                    ///
+                    inline bool operator==(const bidir_const_iter& rhs)
+                    {
+                        return _idx == rhs._idx && _it == rhs._it;
+                    }
+
+                    /// <summary>Unequality operator.</summary>
+                    /// <remarks>This operator should be non-member, but partially specializing it is no good.</remarks>
+                    ///
+                    inline bool operator!=(const bidir_const_iter& rhs)
+                    {
+                        return _idx != rhs._idx || _it != rhs._it;
+                    }
+
+                    /// <summary>Arrow operator.</summary>
+                    ///
+                    const pointer operator->() const
+                    {
+                        static_assert(false, "This function prototype is invalid to instantiate. Returning pointer to temporary has no meaning.");
+
+                        return nullptr;
+                    }
+
+                    /// <summary>Postfix increment operator.</summary>
+                    ///
+                    reverse_bidir_const_iter operator++(int)
+                    {
+                        bidir_const_iter tmp = *this;
+
+                        ++*this;
+
+                        return tmp;
+                    }
+
+                    // BidirectionalIterator concept
+
+                    /// <summary>Prefix decrement operator.</summary>
+                    ///
+                    reverse_bidir_const_iter& operator--()
+                    {
+                        --_idx;
+                        --_it;
+
+                        return *this;
+                    }
+
+                    /// <summary>Postfix decrement operator.</summary>
+                    ///
+                    reverse_bidir_const_iter operator--(int)
+                    {
+                        bidir_const_iter tmp = *this;
+
+                        --*this;
+
+                        return tmp;
+                    }
+
+                private:
+
+                    index_iter_type _idx;
+                    iter_type _it;
+                };
 
                 // Constructors / Destructors / Assignment operators
 
                 /// <summary>Constructs a <c>Zip</c> from two possibly varying expressions <c>u</c> and <c>v</c> and a function object <c>f</c>.</summary>
                 ///
-                Edth(const ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u)
+                edth(const expression_type& u)
                     : _u(static_cast<const E&>(u))
                 {}
 
@@ -1015,6 +2444,24 @@ namespace Multipole
                 ///
                 value_type at(size_type i)         const { static_assert(false, "This function cannot be implemented with a single function object"); return _f(_u.at(i), _v.at(i)); }
 
+                // ConstIterator interface
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_iterator_type cbegin()             const { return const_iterator_type(_u.extent().cbegin(), _u.cbegin()); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_iterator_type cend()               const { return const_iterator_type(_u.extent().cend(), _u.cend()); }
+
+                /// <summary>Returns a constant iterator to the beginning of the array.</summary>
+                ///
+                const_reverse_iterator_type crbegin()    const { return const_reverse_iterator_type(_u.extent().crbegin(), _u.crbegin()); }
+
+                /// <summary>Returns a constant iterator to the one-past-the-end of the array.</summary>
+                ///
+                const_reverse_iterator_type crend()      const { return const_reverse_iterator_type(_u.extent().crend(), _u.crend()); }
+
                 // ConstLattice interface
 
                 /// <summary>Returns a pair of indecies representing the span of the series expansion.</summary>
@@ -1031,14 +2478,17 @@ namespace Multipole
             };
             
             template <typename E, typename F>
-            auto map(const ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u, const F f) { return Map<E, F>(u, f); }
+            auto make_map(const const_expression<E, E::s, E::parity, typename E::index_internal_type, typename E::value_type>& u, const F f)
+            {
+                return map<E, F>(u, f);
+            }
 
             template <typename E1, typename E2, typename F>
-            auto zip(const ConstExpression<E1, E1::l_max, E1::s_max, E1::parity, typename E1::index_internal_type, typename E1::value_type>& u,
-                     const ConstExpression<E2, E2::l_max, E2::s_max, E2::parity, typename E2::index_internal_type, typename E2::value_type>& v,
-                     const F f)
+            auto make_zip(const const_expression<E1, E1::s, E1::parity, typename E1::index_internal_type, typename E1::value_type>& u,
+                          const const_expression<E2, E2::s, E2::parity, typename E2::index_internal_type, typename E2::value_type>& v,
+                          const F f)
             {
-                return Zip<E1, E2, F>(u, v, f);
+                return zip<E1, E2, F>(u, v, f);
             }
 
             //template <Parity P, typename E>
@@ -1047,69 +2497,63 @@ namespace Multipole
             namespace impl
             {
                 template <typename E, typename F>
-                auto l_parity(const typename E::extent_type& ext, const F& f) { return Func<E, F>(ext, f); }
+                auto l_parity(const typename E::extent_type& ext, const F& f) { return func<E, F>(ext, f); }
             }
 
             template <typename E>
             auto l_parity(const typename E::extent_type& ext) { return impl::l_parity<E>(ext, [](const typename E::index_type& i) { return i.l % 2 ? -1 : 1; }); }
-            
-        } // namespace SWS
 
-    } // namespace stl
+    } // namespace sws
 
-} // namespace Multipole
+} // namespace math
 
 ////////////////////////////////////////////////////////
-// SWS::Vector non-member operators //
+// math::sws::vector non-member operators //
 ////////////////////////////////////////////////////////
 
 // Unary 
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator+(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SWS::map(v, [](const auto& val) { return static_cast<T>(1) * val; }); }
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator-(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SWS::map(v, [](const auto& val) { return static_cast<T>(-1) * val; }); }
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto conjugate(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SWS::map(v, [](const auto& val) { return std::conj(val); }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator+(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [](const auto& val) { return static_cast<T>(1) * val; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator-(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [](const auto& val) { return static_cast<T>(-1) * val; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto conjugate(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [](const auto& val) { return std::conj(val); }); }
+template <typename E, std::size_t S, math::sws::parity P, typename I, typename T> auto operator+(const math::sws::const_expression<E, S, P, I, T>& v) { return math::sws::make_map(v, [](const auto& val) { return static_cast<T>(1) * val; }); }
+template <typename E, std::size_t S, math::sws::parity P, typename I, typename T> auto operator-(const math::sws::const_expression<E, S, P, I, T>& v) { return math::sws::make_map(v, [](const auto& val) { return static_cast<T>(-1) * val; }); }
+template <typename E, std::size_t S, math::sws::parity P, typename I, typename T> auto conjugate(const math::sws::const_expression<E, S, P, I, T>& v) { return math::sws::make_map(v, [](const auto& val) { return std::conj(val); }); }
+template <std::size_t S, math::sws::parity P, typename I, typename T> auto operator+(const math::sws::vector<S, P, I, T>& v) { return math::sws::make_map(math::sws::const_view<S, P, I, T>(v), [](const auto& val) { return static_cast<T>(1) * val; }); }
+template <std::size_t S, math::sws::parity P, typename I, typename T> auto operator-(const math::sws::vector<S, P, I, T>& v) { return math::sws::make_map(math::sws::const_view<S, P, I, T>(v), [](const auto& val) { return static_cast<T>(-1) * val; }); }
+template <std::size_t S, math::sws::parity P, typename I, typename T> auto conjugate(const math::sws::vector<S, P, I, T>& v) { return math::sws::make_map(math::sws::const_view<S, P, I, T>(v), [](const auto& val) { return std::conj(val); }); }
 
 // Binary
-template <typename E1, typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SWS::ConstExpression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SWS::ConstExpression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(u, v, [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
-template <typename E1, typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SWS::ConstExpression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SWS::ConstExpression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(u, v, [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
-template <typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SWS::Vector<L, S, P, I1, T1>& u, const Multipole::stl::SWS::ConstExpression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(Multipole::stl::SWS::ConstView<L, S, P, I1, T1>(u), v, [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
-template <typename E2, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SWS::Vector<L, S, P, I1, T1>& u, const Multipole::stl::SWS::ConstExpression<E2, L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(Multipole::stl::SWS::ConstView<L, S, P, I1, T1>(u), v, [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
-template <typename E1, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SWS::ConstExpression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SWS::Vector<L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(u, Multipole::stl::SWS::ConstView<L, S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
-template <typename E1, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SWS::ConstExpression<E1, L, S, P, I1, T1>& u, const Multipole::stl::SWS::Vector<L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(u, Multipole::stl::SWS::ConstView<L, S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const Multipole::stl::SWS::Vector<L, S, P, I1, T1>& u, const Multipole::stl::SWS::Vector<L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(Multipole::stl::SWS::ConstView<L, S, P, I1, T1>(u), Multipole::stl::SWS::ConstView<L, S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const Multipole::stl::SWS::Vector<L, S, P, I1, T1>& u, const Multipole::stl::SWS::Vector<L, S, P, I2, T2>& v) { return Multipole::stl::SWS::zip(Multipole::stl::SWS::ConstView<L, S, P, I1, T1>(u), Multipole::stl::SWS::ConstView<L, S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
+template <typename E1, typename E2, std::size_t S, math::sws::parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const math::sws::const_expression<E1, S, P, I1, T1>& u, const math::sws::const_expression<E2, S, P, I2, T2>& v) { return math::sws::make_zip(u, v, [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
+template <typename E1, typename E2, std::size_t S, math::sws::parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const math::sws::const_expression<E1, S, P, I1, T1>& u, const math::sws::const_expression<E2, S, P, I2, T2>& v) { return math::sws::make_zip(u, v, [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
+template <typename E2, std::size_t S, math::sws::parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const math::sws::vector<S, P, I1, T1>& u, const math::sws::const_expression<E2, S, P, I2, T2>& v) { return math::sws::make_zip(math::sws::const_view<S, P, I1, T1>(u), v, [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
+template <typename E2, std::size_t S, math::sws::parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const math::sws::vector<S, P, I1, T1>& u, const math::sws::const_expression<E2, S, P, I2, T2>& v) { return math::sws::make_zip(math::sws::const_view<S, P, I1, T1>(u), v, [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
+template <typename E1, std::size_t S, math::sws::parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const math::sws::const_expression<E1, S, P, I1, T1>& u, const math::sws::vector<S, P, I2, T2>& v) { return math::sws::make_zip(u, math::sws::const_view<S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
+template <typename E1, std::size_t S, math::sws::parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const math::sws::const_expression<E1, S, P, I1, T1>& u, const math::sws::vector<S, P, I2, T2>& v) { return math::sws::make_zip(u, math::sws::const_view<S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
+template <std::size_t S, math::sws::parity P, typename I1, typename I2, typename T1, typename T2> auto operator+(const math::sws::vector<S, P, I1, T1>& u, const math::sws::vector<S, P, I2, T2>& v) { return math::sws::make_zip(math::sws::const_view<S, P, I1, T1>(u), math::sws::const_view<S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs + rhs; }); }
+template <std::size_t S, math::sws::parity P, typename I1, typename I2, typename T1, typename T2> auto operator-(const math::sws::vector<S, P, I1, T1>& u, const math::sws::vector<S, P, I2, T2>& v) { return math::sws::make_zip(math::sws::const_view<S, P, I1, T1>(u), math::sws::const_view<S, P, I2, T2>(v), [](const auto& lhs, const auto& rhs) { return lhs - rhs; }); }
 
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Scalar alpha, const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SWS::map(v, [=](const auto& val) { return alpha * val; }); }
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SWS::map(v, [=](const auto& val) { return alpha * val; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Scalar alpha, const Multipole::stl::SWS::Vector<L, S, P, I, T>& v) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [=](const auto& val) { return alpha * val; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator*(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [=](const auto& val) { return alpha * val; }); }
+template <typename E, std::size_t S, math::sws::parity P, typename I, typename T, typename Scalar> auto operator*(const Scalar alpha, const math::sws::const_expression<E, S, P, I, T>& v) { return math::sws::make_map(v, [=](const auto& val) { return alpha * val; }); }
+template <typename E, std::size_t S, math::sws::parity P, typename I, typename T, typename Scalar> auto operator*(const math::sws::const_expression<E, S, P, I, T>& v, const Scalar alpha) { return math::sws::make_map(v, [=](const auto& val) { return alpha * val; }); }
+template <std::size_t S, math::sws::parity P, typename I, typename T, typename Scalar> auto operator*(const Scalar alpha, const math::sws::vector<S, P, I, T>& v) { return math::sws::make_map(math::sws::const_view<S, P, I, T>(v), [=](const auto& val) { return alpha * val; }); }
+template <std::size_t S, math::sws::parity P, typename I, typename T, typename Scalar> auto operator*(const math::sws::vector<S, P, I, T>& v, const Scalar alpha) { return math::sws::make_map(math::sws::const_view<S, P, I, T>(v), [=](const auto& val) { return alpha * val; }); }
 
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator/(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SWS::map(v, [=](const auto& val) { return val / alpha; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T, typename Scalar> auto operator/(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v, const Scalar alpha) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [=](const auto& val) { return val / alpha; }); }
+template <typename E, std::size_t S, math::sws::parity P, typename I, typename T, typename Scalar> auto operator/(const math::sws::const_expression<E, S, P, I, T>& v, const Scalar alpha) { return math::sws::make_map(v, [=](const auto& val) { return val / alpha; }); }
+template <std::size_t S, math::sws::parity P, typename I, typename T, typename Scalar> auto operator/(const math::sws::vector<S, P, I, T>& v, const Scalar alpha) { return math::sws::make_map(math::sws::const_view<S, P, I, T>(v), [=](const auto& val) { return val / alpha; }); }
 
 // FIXME: should not be restricted to float, when using Scalar, SWS::ConstExpressions will also match
-template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator-(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v, const float alpha) { return Multipole::stl::SWS::map(v, [=](const auto& val) { return val - alpha; }); }
-template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto operator-(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v, const float alpha) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [=](const auto& val) { return val - alpha; }); }
+template <typename E, std::size_t S, math::sws::parity P, typename I, typename T> auto operator-(const math::sws::const_expression<E, S, P, I, T>& v, const float alpha) { return math::sws::make_map(v, [=](const auto& val) { return val - alpha; }); }
+template <std::size_t S, math::sws::parity P, typename I, typename T> auto operator-(const math::sws::vector<S, P, I, T>& v, const float alpha) { return math::sws::make_map(math::sws::const_view<S, P, I, T>(v), [=](const auto& val) { return val - alpha; }); }
 
-namespace Multipole
+namespace math
 {
-    namespace stl
+    namespace sws
     {
-        namespace SWS
-        {
-            template <typename E, std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto real_cast(const Multipole::stl::SWS::ConstExpression<E, L, S, P, I, T>& v) { return Multipole::stl::SWS::map(v, [](auto&& val) { return val.real(); }); }
-            template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto real_cast(const Multipole::stl::SWS::Vector<L, S, P, I, T>& v) { return Multipole::stl::SWS::map(Multipole::stl::SWS::ConstView<L, S, P, I, T>(v), [](auto&& val) { return val.real(); }); }
+        template <typename E, std::size_t S, parity P, typename I, typename T> auto real_cast(const const_expression<E, S, P, I, T>& v) { return make_map(v, [](auto&& val) { return val.real(); }); }
+        template <std::size_t S, parity P, typename I, typename T> auto real_cast(const vector<S, P, I, T>& v) { returnmake_map(const_view<S, P, I, T>(v), [](auto&& val) { return val.real(); }); }
 
-            template <typename E> auto edth(const ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Edth<E, Spin::Up>(u); }
-            template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto edth(const Vector<L, S, P, I, T>& u) { return edth(ConstView<L, S, P, I, T>(u)); }
+        template <typename E> auto eth(const const_expression<E, E::s, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return edth<E, spin::up>(u); }
+        template <std::size_t S, parity P, typename I, typename T> auto eth(const vector<S, P, I, T>& u) { return edth(const_view<S, P, I, T>(u)); }
 
-            template <typename E> auto edth_bar(const ConstExpression<E, E::l_max, E::s_max, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return Edth<E, Spin::Down>(u); }
-            template <std::size_t L, std::size_t S, Multipole::stl::Parity P, typename I, typename T> auto edth_bar(const Vector<L, S, P, I, T>& u) { return edth_bar(ConstView<L, S, P, I, T>(u)); }
+        template <typename E> auto eth_bar(const const_expression<E, E::s, E::parity, typename E::index_internal_type, typename E::value_type>& u) { return edth<E, spin::down>(u); }
+        template <std::size_t S, parity P, typename I, typename T> auto edth_bar(const vector<S, P, I, T>& u) { return edth_bar(const_view<S, P, I, T>(u)); }
 
-        } // namespace SWS
+    } // namespace sws
 
-    } // namespace stl
-
-} // namespace Multipole
+} // namespace math

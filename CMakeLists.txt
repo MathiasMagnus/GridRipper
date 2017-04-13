@@ -28,41 +28,26 @@ option (GR_BUILD_TESTS "Build unit tests" OFF)
 # Set platform-independent variables
 #
 
-  # Rename senseless variables
-  set (Build_Root ${CMAKE_BINARY_DIR})
-  set (Source_Root ${PROJECT_SOURCE_DIR})
-  
-  # Rename variables + make some new
-  set (System ${CMAKE_SYSTEM})
-  set (System_Name ${CMAKE_SYSTEM_NAME})
-  set (Configuration_Name ${CMAKE_BUILD_TYPE})
-  
   # Append our project's cmake directory to cmake's own module path.
   set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${Source_Root}/cmake/Modules/")
-  
+
   # Use solution folders in IDEs
   set_property (GLOBAL PROPERTY USE_FOLDERS ON)
-  
-  # Override predefined default output directories
-  set (CMAKE_USE_RELATIVE_PATH "true")
-  set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Build_Root}/lib)
-  set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Build_Root}/lib)
-  set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Build_Root}/bin/${Configuration_Name})
-	
+
 #
 # Set platform-specific variables
 #
 
   # If compiling on Windows
-  if (${System_Name} MATCHES "Windows")
-  
-  endif (${System_Name} MATCHES "Windows")
-  
-  # If compiling on Linux-like
-  if (${System_Name} MATCHES "Linux")
-  
-  endif (${System_Name} MATCHES "Linux")
-			
+  if(WIN32)
+    # The VS 15 fork of CMake contains "MSVC" in its version string
+    if(CMAKE_VERSION MATCHES "MSVC")
+      message(STATUS "Visual Studio IDE integration detected.")
+      message(STATUS "Disabling CMake's automatic reconfiguration in favor of IDE detection.")
+      set(CMAKE_SUPPRESS_REGENERATION ON CACHE BOOL "Disables pre-build rule of checking script timestamps")
+    endif(CMAKE_VERSION MATCHES "MSVC")
+  endif(WIN32)
+
 #
 # Set compiler-specific variables
 #
@@ -71,23 +56,23 @@ option (GR_BUILD_TESTS "Build unit tests" OFF)
   if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 
     set (MSVC_CXX_COMPILER_FLAGS)
+	set (MSVC_CXX_COMPILER_FLAGS_DEBUG)
+	set (MSVC_CXX_COMPILER_FLAGS_RELEASE)
     set (MSVC_CXX_LINKER_FLAGS)
-  
-    # Enable C++ exception handler unwind semantics
-    set (MSVC_CXX_COMPILER_FLAGS "${MSVC_CXX_COMPILER_FLAGS} /EHsc")
-    # Enable Multi-processor compilation on intra-project basis
+
+	# Enable Multi-processor compilation on intra-project basis
     set (MSVC_CXX_COMPILER_FLAGS "${MSVC_CXX_COMPILER_FLAGS} /MP")
-    # Disable warnings of having to use dllspec(__import) when using user libraries
-    set (MSVC_CXX_COMPILER_FLAGS "${MSVC_CXX_COMPILER_FLAGS} /wd4251")
-    # Disable warnings of conversion from T to TT could result in possible loss of data (because of buggy compiler in 64-bit)
-    set (MSVC_CXX_COMPILER_FLAGS "${MSVC_CXX_COMPILER_FLAGS} /wd4267")
-    # Disable warnings of cl.hpp for finding deprecated OpenCL 1.1 functions, even though they are never used
-    set (MSVC_CXX_COMPILER_FLAGS "${MSVC_CXX_COMPILER_FLAGS} /wd4996")
-  
+
+	# Enable C++ exception handling (floating point exceptions in Debug builds)
+    set (MSVC_CXX_COMPILER_FLAGS_DEBUG "${MSVC_CXX_COMPILER_FLAGS} /EHa")
+    set (MSVC_CXX_COMPILER_FLAGS_RELEASE "${MSVC_CXX_COMPILER_FLAGS} /EHsc")
+
     # Disable incremental linking and manifest files for annoying command line errors
-    set (MSVC_CXX_LINKER_FLAGS " /INCREMENTAL:NO /MANIFEST:NO /NOLOGO ")
+    #set (MSVC_CXX_LINKER_FLAGS " /INCREMENTAL:NO /MANIFEST:NO /NOLOGO ")
   
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_CXX_COMPILER_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_CXX_COMPILER_FLAGS}")
+	set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${MSVC_CXX_COMPILER_FLAGS_DEBUG}")
+	set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${MSVC_CXX_COMPILER_FLAGS_RELEASE}")
 	
   endif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 

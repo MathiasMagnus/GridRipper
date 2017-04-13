@@ -18,22 +18,192 @@
 
 #include <STL_Example5_Schwarzschild.hpp>
 
+// Simulation aliases
+using integral = std::int8_t;
+using real = double;
+using complex = std::complex<real>;
+using spherical_index_internal_type = std::int8_t;
+using spherical_index = math::sws::index<spherical_index_internal_type>;
+using spherical_extent = math::sws::extent<spherical_index_internal_type>;
+template <std::size_t S, math::sws::parity P> using real_coeff_vector = math::sws::vector<S, P, spherical_index_internal_type, real>;
+template <std::size_t S, math::sws::parity P> using complex_coeff_vector = math::sws::vector<S, P, spherical_index_internal_type, complex>;
+
 int main()
 {
     // Simulation params
-    using integral = std::int32_t;      // Type used to represent integral values
-    using real = double;                // Type used to represent real values
-    using complex = std::complex<real>; // Type used to represent complex values
-    constexpr integral L_max = 3;       // Maximum multipole values for series expansion
-    constexpr integral S_max = 3;       // Maximum spin values for series expansion
-    const real drho = 0.025f;           // Separation of rho coordinates
-    const integral rho_min = 120;        // Coordinate # of innermost lattice site
-    const integral rho_max = 200;        // Coordinate # of outermost lattice site
-    const integral rho_n = 120;          // Coordinate # to start integration from
-    const real M = 100.f;               // Black hole mass param
-    const real neumann_length = 0.001f; // Neumann-series expansion precision
+    //using integral = std::int32_t;      // Type used to represent integral values
+    //using real = double;                // Type used to represent real values
+    //using complex = std::complex<real>; // Type used to represent complex values
+    constexpr integral L_max = 5;       // Maximum multipole values for series expansion
+    //constexpr integral S_max = 3;       // Maximum spin values for series expansion
+    constexpr real drho = 0.025f;       // Separation of rho coordinates
+    constexpr real rho_min = 3;         // Innermost radial lattice coordinate
+    //const integral rho_max = 200;        // Coordinate # of outermost lattice site
+    //const integral rho_n = 120;          // Coordinate # to start integration from
+    constexpr real M = 100.f;               // Black hole mass param
+    //const real neumann_length = 0.001f; // Neumann-series expansion precision
+
+    constexpr integral m = 24;      // Evaluation point count for chebysev integral
+    constexpr integral n = 60;      // Evaluation point count for periodic integral
+
+    // Constant definitions
+    constexpr real one = 1, two = 2, three = 3, four = 4, eight = 8, one_per_two = one / two, three_per_two = three / two;
+
+    // Helper definitions
+    auto H = [=](const real r) { return M / r; };
+
+    // Analytic solution (theta, phi independant, totally spherically symmetric) // based on (3.36)
+    auto analytic_solution = [=](const real rho,
+                                 const real, // theta
+                                 const real) // phi
+    {
+        return -four * M / (rho * rho * std::sqrt(one + two * H(rho)));
+    };
+
+    // Binds the rho parameter of a spherical function or series expansion to a given value
+    auto spherical_surface = [](const auto f, const real rho) { return [=](const real theta, const real phi) { return f(rho, theta, phi); }; };
+    auto expansion_surface = [](const auto f, const real rho) { return [=](const spherical_index idx) { return f(rho, idx); }; };
+
+    // Expand an analytic spherical function 'f' defined in spherical-coordinates over the spin-weighted spherical harmonics
+    // Effectively changes the signature from {rho,theta,phi} to {rho,{l,m,s}}
+    auto series_expand = [=](const auto f, int M, int N)
+    {
+        return [=](const real rho, const spherical_index idx)
+        {
+            return math::chebysev<real>(0, math::pi<real>, M, [=](const real& theta)
+            {
+                return math::periodic<real>(0, 2 * math::pi<real>, N, [=](const real& phi)
+                {
+                    floating::scoped_exception_enabler fpe;
+
+                    return std::conj(math::Y_lms(theta, phi, idx.l, idx.m, idx.s)) * f(rho, theta, phi)/* * std::sin(theta)*/;
+                });
+            });
+        };
+    };
+    /*
+    // Reduce a spin-weighted spherical expansion to the original analytic spherical function
+    // Effectively changes the signature from {rho,{l,m,s}} to {rho,theta,phi}
+    auto reduce_series = [](const auto f)
+    {
+        return [](const real rho, const real theta, const phi)
+        {
+            using F = decltype(f);
+
+            return std::accumulate(f.extent().begin(), f.extent().end(), )
+        };
+    };
+    */
+    using namespace math::sws;
+
+    real_coeff_vector<0, parity::even> a{ L_max };
+    real_coeff_vector<0, parity::even> b{ L_max };
+
+    real_coeff_vector<0, parity::even> c;
+    
+    c = -a;
+    c = a + b;
+
+    complex_coeff_vector<0, parity::even> d{ L_max };
+
+    // Transform f(rho,theta,phi) initial condition to a coefficient vector of a_{l,m,s}
+    //std::transform(d.extent().cbegin(),
+    //               d.extent().cend(),
+    //               d.begin(),
+    //               expansion_surface(series_expand(analytic_solution),
+    //                                 rho_min));
+
+    auto Y_000 = [](real, // rho
+                    real theta,
+                    real phi) { return math::Y_lms(theta, phi, 0, 0, 0); };
+
+    auto const_one = [](real, // rho
+                        real, // theta
+                        real) // phi
+    {
+        return 1.;
+    };
+
+    auto calc_4pi = [=](const auto f, int M, int N)
+    {
+        return math::chebysev<real>(0, math::pi<real>, M, [=](const real& theta)
+        {
+            return math::periodic<real>(0, 2 * math::pi<real>, N, [=](const real& phi)
+            {
+                return const_one(0, theta, phi) * std::sin(theta);
+            });
+        });
+    };
+    
+    std::ofstream out( "out.dat", std::ios::ate | std::ios::app );
+
+    for (int m = 4; m < 40; m += 2)
+        for (int n = 4; n < 40; n += 2)
+        {
+            std::cout << m << " " << n << std::endl;
+            out << m << "\t" << n << "\t" << calc_4pi(const_one, m, n) << std::endl;
+        }
+            
+
+    //for (real theta = 0; theta <= math::pi<real>; theta += math::pi<real> / 100)
+    //    for (real phi = 0; phi <= 2 * math::pi<real>; phi += 2 * math::pi<real> / 100)
+    //        out <<
+    //        theta << "\t"<<
+    //        phi << "\t" <<
+    //        Y_000(0, theta, phi).real() << "\t" <<
+    //        Y_000(0, theta, phi).imag() << std::endl;
+
+    out.close();
+    
+    //std::cout << Y_000(0, M_PI, M_PI) << "\t" <<
+    //    0.5 * std::sqrt(1. / M_PI) << "\t" <<
+    //    0.5 * std::sqrt(1. / M_PI) * 4 * M_PI << std::endl;
+
+    //std::transform(d.extent().cbegin(),
+    //               d.extent().cend(),
+    //               d.begin(),
+    //               expansion_surface(series_expand(const_one, 12, 30), rho_min));
+    //
+    //std::cout << "expansion_surface(series_expand(const_one, 12, 30),\n";
+    //std::cout << "                  " << rho_min << ") = " << std::endl;
+    //std::cout << "{l,m,s}\t\t(Re,Im)" << std::endl;
+    //std::for_each(d.extent().cbegin(), d.extent().cend(), [it = d.cbegin()](const auto& idx) mutable
+    //{
+    //    std::cout << idx << "\t" << *(it++) << std::endl;
+    //});
+    //
+    //std::cout << std::endl << std::endl;
+    //
+    //std::transform(d.extent().cbegin(),
+    //    d.extent().cend(),
+    //    d.begin(),
+    //    expansion_surface(series_expand(const_one, 24, 60), rho_min));
+    //
+    //std::cout << "expansion_surface(series_expand(const_one, 24, 60),\n";
+    //std::cout << "                  " << rho_min << ") = " << std::endl;
+    //std::cout << "{l,m,s}\t\t(Re,Im)" << std::endl;
+    //std::for_each(d.extent().cbegin(), d.extent().cend(), [it = d.cbegin()](const auto& idx) mutable
+    //{
+    //    std::cout << idx << "\t" << *(it++) << std::endl;
+    //});
+    //
+    //std::cout << std::endl << std::endl;
+    //
+    //std::transform(d.extent().cbegin(),
+    //    d.extent().cend(),
+    //    d.begin(),
+    //    expansion_surface(series_expand(const_one, 36, 120), rho_min));
+    //
+    //std::cout << "expansion_surface(series_expand(const_one, 12, 30),\n";
+    //std::cout << "                  " << rho_min << ") = " << std::endl;
+    //std::cout << "{l,m,s}\t\t(Re,Im)" << std::endl;
+    //std::for_each(d.extent().cbegin(), d.extent().cend(), [it = d.cbegin()](const auto& idx) mutable
+    //{
+    //    std::cout << idx << "\t" << *(it++) << std::endl;
+    //});
 
     // Simulation type aliases
+    /*
     using namespace Multipole::stl;
     using radial_index = integral;
     using radial_extent = Radial::Extent<radial_index>;
@@ -64,8 +234,8 @@ int main()
     spherical_extent lms_ext;
     real_coeff_vector N_kalap, K_kalap, kappa_null, kappa, K_initial, a, d;
     complex_coeff_vector k_initial, b;
-    gaunt_matrix gaunt;
-
+    gaunt_matrix gaunt;*/
+    /*
     solver rk4;
     real_radial_coeff_vector K_result;
     complex_radial_coeff_vector k_result;
@@ -264,7 +434,7 @@ int main()
     end = timer::now(); std::cout << "done. " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
     
     // Export data for plot
-    std::cout << "Exporting... "; std::cout.flush(); start = timer::now();
+    std::cout << "Exporting... "; std::cout.flush(); start = timer::now();*/
     /*
     {
         std::stringstream file_name;
@@ -293,6 +463,7 @@ int main()
         }
     }
     */
+    /*
     std::ofstream data_file("output.dat", std::ios::ate);
     data_file.imbue(std::locale(""));
 
@@ -306,6 +477,6 @@ int main()
     }
     
     end = timer::now(); std::cout << "done. " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
-    
+    */
     return EXIT_SUCCESS;
 }

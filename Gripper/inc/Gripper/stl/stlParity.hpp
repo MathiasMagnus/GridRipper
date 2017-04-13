@@ -1,16 +1,16 @@
 #pragma once
 
 // ISO C++ includes
-#include <cstdint>
+#include <cstdint>      // std::int16_t
 
-namespace Multipole
+namespace math
 {
-    namespace stl
+    namespace sws
     {
-        enum Parity : std::int16_t
+        enum parity : std::int16_t
         {
-            Odd = -1,
-            Even = 1
+            odd = -1,
+            even = 1
         };
     }
 }
