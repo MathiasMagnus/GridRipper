@@ -22,8 +22,8 @@ int main()
     std::cout <<
         "math::periodic<real>(0, pi, N, const_one) converged with " <<
         *std::adjacent_find(counter{ 2 }, counter{ 100 }, [=](const integral& n, const integral& m) { return std::abs(calc_pi(n) - calc_pi(m)) < tolerance; }) <<
-        "function evaluations" << std::endl;
-
+        " function evaluations" << std::endl;
+    /*
     std::vector<real> almost_pi;
 
     std::transform(counter{3, 5},
@@ -43,6 +43,7 @@ int main()
 
     if (is_any_too_far_from_pi)
         std::exit(EXIT_FAILURE);
+    */
 
     // Calculate 0 by integrating the cosine function from -pi to pi
     //auto calc_zero = [=](integral N) { return math::chebysev<real>(-pi, pi, N, cos); };

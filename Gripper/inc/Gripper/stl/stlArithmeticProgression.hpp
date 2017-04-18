@@ -29,8 +29,11 @@ namespace stl
 
         arithmetic_progression_iterator() = default;
         arithmetic_progression_iterator(const arithmetic_progression_iterator&) = default;
-        arithmetic_progression_iterator(arithmetic_progression_iterator&& x) = default;
+        arithmetic_progression_iterator(arithmetic_progression_iterator&&) = default;
         ~arithmetic_progression_iterator() = default;
+
+        arithmetic_progression_iterator& operator=(const arithmetic_progression_iterator&) = default;
+        arithmetic_progression_iterator& operator=(arithmetic_progression_iterator&&) = default;
 
         arithmetic_progression_iterator(value_type init, value_type d = 1) : _value(init), _d(d) {}
 
