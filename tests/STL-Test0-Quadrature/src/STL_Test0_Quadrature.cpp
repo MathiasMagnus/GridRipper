@@ -21,7 +21,7 @@ int main()
 
     std::cout <<
         "math::periodic<real>(0, pi, N, const_one) converged with " <<
-        *std::adjacent_find(counter{ 2 }, counter{ 100 }, [=](const integral& n, const integral& m) { return std::abs(calc_pi(n) - calc_pi(m)) < tolerance; }) <<
+        *std::adjacent_find(counter{ 2, 100 }, counter{}, [=](const integral& n, const integral& m) { return std::abs(calc_pi(n) - calc_pi(m)) < tolerance; }) <<
         " function evaluations" << std::endl;
     /*
     std::vector<real> almost_pi;
@@ -44,21 +44,21 @@ int main()
     if (is_any_too_far_from_pi)
         std::exit(EXIT_FAILURE);
     */
-
+    
     // Calculate 0 by integrating the cosine function from -pi to pi
     //auto calc_zero = [=](integral N) { return math::chebysev<real>(-pi, pi, N, cos); };
     auto calc_zero = [=](integral N) { return math::chebysev<real>(0, 2 * pi, N, cos); };
 
     std::vector<real> almost_zero;
-
-    std::transform(counter{4, 10},
-                   counter{44, 10},
+    
+    std::transform(counter{4, 54, 10},
+                   counter{},
                    std::back_inserter(almost_zero),
                    [=](const integral& n)
     {
         return calc_zero(n);
     });
-
+    
     auto is_any_too_far_from_zero = std::any_of(almost_zero.cbegin(),
                                                 almost_zero.cend(),
                                                 [](const real& val)
@@ -68,7 +68,7 @@ int main()
 
     if (is_any_too_far_from_zero)
         std::exit(EXIT_FAILURE);
-
+    
     // Calculate 4pi by integrating the surface integral of the constant 1 function on a sphere of unit radius
     auto calc_4pi = [](integral M, integral N)
     {
@@ -83,6 +83,6 @@ int main()
     
     if (std::abs(calc_4pi(30, 30) - 4 * math::pi<real>) > 1e-6)
         std::exit(EXIT_FAILURE);
-
+    
 	return EXIT_SUCCESS;
 }

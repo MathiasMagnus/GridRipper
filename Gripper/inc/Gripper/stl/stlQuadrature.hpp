@@ -22,8 +22,10 @@ namespace math
     template <typename Floating, typename F>
     auto periodic(const Floating from, const Floating to, const std::int_fast32_t n, const F f)
     {
+        if (f(from) != f(to)) throw std::domain_error{ "Function provided to math::periodic is not periodic on the given interval." };
+
         using int_type = std::int_fast32_t;
-        using counter = stl::arithmetic_progression_iterator<int_type>;
+        using counter_type = stl::arithmetic_progression_iterator<int_type>;
         using result_type = decltype(f(std::declval<Floating>()));
 
         static constexpr Floating one = static_cast<Floating>(1);
@@ -35,8 +37,8 @@ namespace math
         auto w_in = []() { return one; };
         auto w_i = [](const int_type) { return two; };
 
-        return (std::accumulate(++counter{ 0 },                                     // Left boundary condition treated in zero elem
-                                counter{ n },                                       // Right boundary condition treated after std::accumulate
+        return (std::accumulate(++counter_type{ 0, n },                             // Left boundary condition treated in zero elem
+                                counter_type{},                                     // Right boundary condition treated after std::accumulate
                                 static_cast<result_type>(w_i0() * f(x_i_ab(0))),    // Zero elem is left boundary evaluation
                                 [=](const result_type& sum,
                                     const int_type& i)
@@ -54,14 +56,14 @@ namespace math
         if (n % 2) throw std::domain_error{ "math::chebysev only accepts even integration points" };
 
         using int_type = std::int_fast32_t;
-        using counter = stl::arithmetic_progression_iterator<int_type>;
+        using counter_type = stl::arithmetic_progression_iterator<int_type>;
         using result_type = decltype(f(std::declval<Floating>()));
     
         static constexpr Floating one = static_cast<Floating>(1);
         static constexpr Floating two = static_cast<Floating>(2);
         static constexpr Floating one_per_two = one / two;
     
-        auto x_i = [&](const int_type i) { return std::cos(pi<Floating> * i / n); };
+        auto x_i =    [&](const int_type i) { return std::cos(pi<Floating> * i / n); };
         auto x_i_ab = [&](const int_type i) { return (x_i(i) + one) * one_per_two * (to - from) + from; };
     
         auto w_i0 = [&]() { return one; };
@@ -74,8 +76,8 @@ namespace math
     
         auto inner_sum = [=](const int_type i)
         {
-            return std::accumulate(++counter{ 0 },              // Left boundary condition treated in zero elem
-                                   counter{ n },                // Right boundary condition treated after std::accumulate
+            return std::accumulate(++counter_type{ 0, n },      // Left boundary condition treated in zero elem
+                                   counter_type{},              // Right boundary condition treated after std::accumulate
                                    w_ij0(i) * f(x_i_ab(0)),     // Zero elem is left boundary evaluation
                                    [=](const result_type& sum,
                                        const int_type& j)
@@ -87,8 +89,8 @@ namespace math
     
         auto outer_sum = [=](const auto inner)
         {
-            return std::accumulate(++counter{ 0, 2 },           // Left boundary condition treated in zero elem
-                                   counter{ n, 2 },             // Right boundary condition treated after std::accumulate
+            return std::accumulate(++counter_type{ 0, n, 2 },   // Left boundary condition treated in zero elem
+                                   counter_type{},              // Right boundary condition treated after std::accumulate
                                    w_i0() * inner(0),           // Zero elem is left boundary evaluation
                                    [=](const result_type& cum_sum,
                                        const int_type& i)

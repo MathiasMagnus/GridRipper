@@ -4,9 +4,6 @@
 #include <Gripper/stl/stlConfig.hpp>
 #include <Gripper/stl/stlArithmeticProgression.hpp>
 
-// GSL includes
-//#include <gsl/gsl_sf.h>    // 
-
 // Standard C++ includes
 #include <cmath>            // std::tan, std::tgamma, std::beta (binom should be implemented via beta)
 #include <numeric>          // std::accumulate
@@ -67,9 +64,10 @@ namespace math
     auto sum(Integral from, Integral to, F f)
     {
         using result_type = decltype(f(std::declval<Integral>()));
+        using counter_type = stl::arithmetic_progression_iterator<Integral>;
 
-        return std::accumulate(stl::arithmetic_progression_iterator<Integral>(from),
-                               stl::arithmetic_progression_iterator<Integral>(++to),
+        return std::accumulate(counter_type{ from, ++to },
+                               counter_type{},
                                static_cast<result_type>(0),
                                [=](const result_type& cum_sum, const Integral& i) {return f(i) + cum_sum; });
     }

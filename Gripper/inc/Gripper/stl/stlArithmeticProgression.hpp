@@ -1,8 +1,5 @@
 #pragma once
 
-// Gripper includes
-#include <Gripper/stl/stlConfig.hpp>
-
 // Standard C++ includes
 #include <cstddef>          // std::ptrdiff_t
 #include <iterator>         // std::iterator, std::random_access_iterator_tag
@@ -10,14 +7,37 @@
 
 namespace stl
 {
+    //
+    // Forward declarations
+    //
+
+    template <typename Integral>
+    class arithmetic_progression_iterator;
+
+    template <typename Integral>
+    arithmetic_progression_iterator<Integral> operator+(const arithmetic_progression_iterator<Integral>& lhs,
+                                                        const typename arithmetic_progression_iterator<Integral>::difference_type count);
+    template <typename Integral>
+    arithmetic_progression_iterator<Integral> operator+(const typename arithmetic_progression_iterator<Integral>::difference_type count,
+                                                        const arithmetic_progression_iterator<Integral>& rhs);
+    template <typename Integral>
+    arithmetic_progression_iterator<Integral> operator-(const arithmetic_progression_iterator<Integral>& lhs,
+                                                        const typename arithmetic_progression_iterator<Integral>::difference_type count);
+    template <typename Integral>
+    arithmetic_progression_iterator<Integral> operator-(const typename arithmetic_progression_iterator<Integral>::difference_type count,
+                                                        const arithmetic_progression_iterator<Integral>& rhs);
+    template <typename Integral>
+    typename arithmetic_progression_iterator<Integral>::difference_type operator-(const arithmetic_progression_iterator<Integral>& lhs,
+                                                        const arithmetic_progression_iterator<Integral>& rhs);
+
     template <typename Integral>
     class arithmetic_progression_iterator : public std::iterator<std::random_access_iterator_tag, Integral, std::ptrdiff_t, const Integral*, const Integral&>
     {
-    private:
+    public:
+
+        // arithmetic_progression_iterator aliases
 
         using iter_base = std::iterator<std::random_access_iterator_tag, Integral, std::ptrdiff_t, const Integral*, const Integral&>;
-
-    public:
 
         // Iterator aliases
 
@@ -27,7 +47,17 @@ namespace stl
         using typename iter_base::pointer;
         using typename iter_base::reference;
 
-        arithmetic_progression_iterator() = default;
+        // friend declarations
+
+        friend difference_type operator-<>(const arithmetic_progression_iterator&, const arithmetic_progression_iterator&);
+        friend arithmetic_progression_iterator operator+<>(const arithmetic_progression_iterator&, const difference_type);
+        friend arithmetic_progression_iterator operator+<>(const difference_type, const arithmetic_progression_iterator&);
+        friend arithmetic_progression_iterator operator-<>(const arithmetic_progression_iterator&, const difference_type);
+        friend arithmetic_progression_iterator operator-<>(const difference_type, const arithmetic_progression_iterator&);
+
+        // Constructors, destructors, assignment operators
+
+        arithmetic_progression_iterator() : m_value(), m_final(), m_diff(0) {}
         arithmetic_progression_iterator(const arithmetic_progression_iterator&) = default;
         arithmetic_progression_iterator(arithmetic_progression_iterator&&) = default;
         ~arithmetic_progression_iterator() = default;
@@ -35,18 +65,24 @@ namespace stl
         arithmetic_progression_iterator& operator=(const arithmetic_progression_iterator&) = default;
         arithmetic_progression_iterator& operator=(arithmetic_progression_iterator&&) = default;
 
-        arithmetic_progression_iterator(value_type init, value_type d = 1) : _value(init), _d(d) {}
+        arithmetic_progression_iterator(value_type init, value_type fin, value_type diff = 1) : m_value(init), m_final(fin), m_diff(diff)
+        {
+            if ((fin - init) % diff != 0)
+                throw std::domain_error{ "stl::arithmetic_progression_iterator misuse: initial, final and stride values cannot form a range." };
+        }
 
-        value_type diff() const { return _d; }
+        // arithmetic_progression_iterator member functions
+
+        value_type diff() const { return m_diff; }
 
         //
         // Iterator concept
         //
-        const reference operator*() const { return _value; }
+        const reference operator*() const { return m_value; }
 
         arithmetic_progression_iterator& operator++()
         {
-            _value += _d;
+            m_value += m_diff;
 
             return *this;
         }
@@ -58,17 +94,25 @@ namespace stl
         // These operators should be non-member, but partially specializing them is no good.
         inline bool operator==(const arithmetic_progression_iterator& rhs)
         {
-            return _value == rhs._value &&
-                _d == rhs._d;
+            if (this->is_end())
+                return m_value == m_final;
+            else
+                return m_value == rhs.m_value &&
+                m_final == rhs.m_final &&
+                m_diff == rhs.m_diff;
         }
 
         inline bool operator!=(const arithmetic_progression_iterator& rhs)
         {
-            return _value != rhs._value ||
-                _d != rhs._d;
+            if (this->is_end())
+                return m_value != m_final;
+            else
+                return m_value != rhs.m_value ||
+                m_final != rhs.m_final ||
+                m_diff != rhs.m_diff;
         }
 
-        const pointer operator->() const { return &_value; }
+        pointer operator->() const { return &m_value; }
 
         arithmetic_progression_iterator operator++(int)
         {
@@ -84,7 +128,7 @@ namespace stl
         //
         arithmetic_progression_iterator& operator--()
         {
-            _value -= _d;
+            m_value -= m_diff;
 
             return *this;
         }
@@ -103,46 +147,62 @@ namespace stl
         //
         arithmetic_progression_iterator& operator+=(int i)
         {
-            _value += i * _d;
+            m_value += i * m_diff;
 
             return *this;
         }
 
         arithmetic_progression_iterator& operator-=(int i)
         {
-            _value -= i * _d;
+            m_value -= i * m_diff;
 
             return *this;
         }
 
         const reference operator[](Integral i)
         {
-            return _value + i * _d;
+            return m_value + i * m_diff;
         }
 
         inline bool operator<(const arithmetic_progression_iterator& rhs)
         {
-            return _value < rhs._value;
+            if (rhs.is_end())
+            {
+                return true;
+            }
+            else
+            {
+                return m_value < rhs.m_value;
+            }
         }
 
         inline bool operator>(const arithmetic_progression_iterator& rhs)
         {
-            return _value > rhs._value;
+            if (rhs.is_end())
+            {
+                return false;
+            }
+            else
+            {
+                return m_value > rhs.m_value;
+            }
         }
 
         inline bool operator<=(const arithmetic_progression_iterator& rhs)
         {
-            return !(_value > rhs._value);
+            return !(m_value > rhs.m_value);
         }
 
         inline bool operator>=(const arithmetic_progression_iterator& rhs)
         {
-            return !(_value < rhs._value);
+            return !(m_value < rhs.m_value);
         }
 
     private:
 
-        value_type _value, _d;
+        bool is_end() const { return !static_cast<bool>(m_diff); }
+
+        value_type m_value, m_final, m_diff;
     };
 
     //
@@ -153,43 +213,53 @@ namespace stl
 
     template <typename Integral>
     arithmetic_progression_iterator<Integral> operator+(const arithmetic_progression_iterator<Integral>& lhs,
-        const typename arithmetic_progression_iterator<Integral>::difference_type count)
+                                                        const typename arithmetic_progression_iterator<Integral>::difference_type count)
     {
         return arithmetic_progression_iterator<Integral>(*lhs + count * lhs.diff(), lhs.diff());
     }
 
     template <typename Integral>
     arithmetic_progression_iterator<Integral> operator+(const typename arithmetic_progression_iterator<Integral>::difference_type count,
-        const arithmetic_progression_iterator<Integral>& rhs)
+                                                        const arithmetic_progression_iterator<Integral>& rhs)
     {
         return arithmetic_progression_iterator<Integral>(*rhs + count * rhs.diff(), rhs.diff());
     }
 
     template <typename Integral>
     arithmetic_progression_iterator<Integral> operator-(const arithmetic_progression_iterator<Integral>& lhs,
-        const typename arithmetic_progression_iterator<Integral>::difference_type count)
+                                                        const typename arithmetic_progression_iterator<Integral>::difference_type count)
     {
         return arithmetic_progression_iterator<Integral>(*lhs - count * lhs.diff(), lhs.diff());
     }
 
     template <typename Integral>
     arithmetic_progression_iterator<Integral> operator-(const typename arithmetic_progression_iterator<Integral>::difference_type count,
-        const arithmetic_progression_iterator<Integral>& rhs)
+                                                        const arithmetic_progression_iterator<Integral>& rhs)
     {
         return arithmetic_progression_iterator<Integral>(*rhs - count * rhs.diff(), rhs.diff());
     }
 
     template <typename Integral>
     typename arithmetic_progression_iterator<Integral>::difference_type operator-(const arithmetic_progression_iterator<Integral>& lhs,
-        const arithmetic_progression_iterator<Integral>& rhs)
+                                                                                  const arithmetic_progression_iterator<Integral>& rhs)
     {
-        if (lhs.diff() != rhs.diff())
-            throw std::runtime_error{ "stl::arithmetic_progression_iterator misuse: strides do not match, distance does not exist." };
+        if (rhs.is_end())
+        {
+            return (*lhs - lhs.m_final) / lhs.diff();
+        }
+        else
+        {
+            if (lhs.diff() != rhs.diff())
+                throw std::runtime_error{ "stl::arithmetic_progression_iterator misuse: strides do not match, distance does not exist." };
 
-        if (*rhs - *lhs % lhs.diff() != 0)
-            throw std::runtime_error{ "stl::arithmetic_progression_iterator misuse: begin, end values with designated stride does not form a range; distance does not exist." };
+            if (lhs.m_final != rhs.m_final)
+                throw std::runtime_error{ "stl::arithmetic_progression_iterator misuse: end values do not match, distance does not exist." };
 
-        return (*rhs - *lhs) / lhs.diff();
+            if ((*rhs - *lhs) % lhs.diff() != 0)
+                throw std::runtime_error{ "stl::arithmetic_progression_iterator misuse: begin, end values with designated stride does not form a range; distance does not exist." };
+
+            return (*rhs - *lhs) / lhs.diff();
+        }
     }
 
 } // namespace stl
