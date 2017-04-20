@@ -126,5 +126,5 @@ set (Gripper_ADDITIONAL_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/Gripper/inc/")
 
 if (GR_BUILD_TESTS)
   enable_testing()
-  #add_subdirectory (tests)
+  add_subdirectory (tests)
 endif (GR_BUILD_TESTS)
