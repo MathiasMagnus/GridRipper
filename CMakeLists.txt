@@ -17,10 +17,6 @@ set     (GridRipper_VERSION_PATCH 0)
 
 # Behavioural options for the project
 option (GR_USE_STL "Build the STL compute back-end" ON)
-option (GR_USE_OPENCL "Build the OpenCL compute back-end" OFF)
-option (GR_USE_AMP "Build the C++AMP compute back-end" OFF)
-option (GR_BUILD_CLUSTER_SUPPORT "Build with cluster support" OFF)
-option (GR_BUILD_VISUALIZER_SUPPORT "Build with visuailzing support" OFF)
 option (GR_BUILD_EXAMPLES "Build examples" ON)
 option (GR_BUILD_TESTS "Build unit tests" OFF)
 
@@ -59,9 +55,6 @@ option (GR_BUILD_TESTS "Build unit tests" OFF)
 	set (MSVC_CXX_COMPILER_FLAGS_DEBUG)
 	set (MSVC_CXX_COMPILER_FLAGS_RELEASE)
     set (MSVC_CXX_LINKER_FLAGS)
-
-	# Enable Multi-processor compilation on intra-project basis
-    set (MSVC_CXX_COMPILER_FLAGS "${MSVC_CXX_COMPILER_FLAGS} /MP")
 
 	# Enable C++ exception handling (floating point exceptions in Debug builds)
     set (MSVC_CXX_COMPILER_FLAGS_DEBUG "${MSVC_CXX_COMPILER_FLAGS} /EHa")
@@ -120,73 +113,18 @@ set (Gripper_ADDITIONAL_INCLUDE_DIRS)
 
 set (Gripper_ADDITIONAL_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/Gripper/inc/")
 
-find_package (GSL REQUIRED)
-if (GSL_FOUND)
-  set (Gripper_ADDITIONAL_INCLUDE_DIRS ${Gripper_ADDITIONAL_INCLUDE_DIRS} ${GSL_INCLUDE_DIR})
-	
-  set (Gripper_ADDITIONAL_LIBS ${Gripper_ADDITIONAL_LIBS} ${GSL_LIBRARIES})
-else (GSL_FOUND)
-  message(FATAL_ERROR "GSL not found")
-endif (GSL_FOUND)
-
-# OpenCL
-if (GR_USE_OPENCL)
-  find_package (OpenCL)
-  # http://www.cmake.org/cmake/help/v2.8.11/cmake.html#command:find_package
-  if (OPENCL_FOUND)
-    set (Gripper_ADDITIONAL_INCLUDE_DIRS ${Gripper_ADDITIONAL_INCLUDE_DIRS} ${OPENCL_INCLUDE_DIRS})
-		
-    set (Gripper_ADDITIONAL_LIBS ${Gripper_ADDITIONAL_LIBS} ${OPENCL_LIBRARIES})
-  endif (OPENCL_FOUND)
-endif (GR_USE_OPENCL)
-
-# C++AMP
-if (GR_USE_AMP)
-  message(FATAL_ERROR "C++AMP support is currently not available")
-  # http://www.cmake.org/cmake/help/v2.8.11/cmake.html#command:message
-endif (GR_USE_AMP)
-
-# Visualizer support
-if (GR_BUILD_VISUALIZER_SUPPORT)
-  # If Using_Qt5 was specified, we should look for the required modules only.
-  # NOTE: We will have to specify each target using these modules explicitly
-  # that they must be linked against them on top of regular dependencies.
-
-  # Find includes in corresponding build directories.
-  # NOTE: presumably needed for generated files to be found.
-  set (CMAKE_INCLUDE_CURRENT_DIR ON)
-  # Instruct CMake to run moc automatically when needed.
-  set (CMAKE_AUTOMOC ON)
-  # Tell CMake to look for Qt5 cmake commands inside QTDIR
-  # environmental variable that the installer is upposed to set.
-  set (CMAKE_PREFIX_PATH $ENV{QTDIR})
-  # Find Qt5 installation and include Qt5 specific CMake commands
-  find_package (Qt5Core Qt5GUI Qt5OpenGL)
-  # http://qt.developpez.com/doc/5.0-snapshot/cmake-manual/
-endif (GR_BUILD_VISUALIZER_SUPPORT)
-
-# Cluster support
-if (GR_BUILD_CLUSTER_SUPPORT)
-  find_package(MPI)
-  if (MPI_C_FOUND)
-    set (Gripper_ADDITIONAL_INCLUDE_DIRS ${Gripper_ADDITIONAL_INCLUDE_DIRS} ${MPI_C_INCLUDE_PATH})
-  	
-    set (Gripper_ADDITIONAL_LIBS ${Gripper_ADDITIONAL_LIBS} ${MPI_C_LIBRARIES})
-  endif (MPI_C_FOUND)
-endif (GR_BUILD_CLUSTER_SUPPORT)
-
 #
 # Relay control to subprojects
 #
 
 # Process targets inside project
-add_subdirectory (Gripper)
+#add_subdirectory (Gripper)
 
-if (GR_BUILD_EXAMPLES)
-  add_subdirectory (examples)
-endif (GR_BUILD_EXAMPLES)
+#if (GR_BUILD_EXAMPLES)
+#  add_subdirectory (examples)
+#endif (GR_BUILD_EXAMPLES)
 
 if (GR_BUILD_TESTS)
   enable_testing()
-  add_subdirectory (tests)
+  #add_subdirectory (tests)
 endif (GR_BUILD_TESTS)

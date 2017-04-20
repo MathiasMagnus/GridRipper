@@ -7,10 +7,10 @@
 ###############################################################################
 
 # The project name and version, release numbers
-project (Tests)
-set (Tests_VERSION_MAJOR 0)
-set (Tests_VERSION_MINOR 5)
-set (Tests_VERSION_PATCH 0)
+#project (Tests)
+#set (Tests_VERSION_MAJOR 0)
+#set (Tests_VERSION_MINOR 5)
+#set (Tests_VERSION_PATCH 0)
 
 # Process tests
 
