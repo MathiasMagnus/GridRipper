@@ -94,8 +94,10 @@ namespace stl
         // These operators should be non-member, but partially specializing them is no good.
         inline bool operator==(const arithmetic_progression_iterator& rhs)
         {
-            if (this->is_end())
+            if (rhs.is_end())
                 return m_value == m_final;
+			if (this->is_end())
+				return rhs.m_value == rhs.m_final;
             else
                 return m_value == rhs.m_value &&
                 m_final == rhs.m_final &&
@@ -104,12 +106,7 @@ namespace stl
 
         inline bool operator!=(const arithmetic_progression_iterator& rhs)
         {
-            if (this->is_end())
-                return m_value != m_final;
-            else
-                return m_value != rhs.m_value ||
-                m_final != rhs.m_final ||
-                m_diff != rhs.m_diff;
+			return !(*this == rhs);
         }
 
         pointer operator->() const { return &m_value; }
@@ -166,26 +163,18 @@ namespace stl
 
         inline bool operator<(const arithmetic_progression_iterator& rhs)
         {
-            if (rhs.is_end())
-            {
-                return true;
-            }
-            else
-            {
-                return m_value < rhs.m_value;
-            }
+            if (rhs.is_end()) return true;
+			if (this->is_end()) return false;
+
+            return m_value < rhs.m_value;
         }
 
         inline bool operator>(const arithmetic_progression_iterator& rhs)
         {
-            if (rhs.is_end())
-            {
-                return false;
-            }
-            else
-            {
-                return m_value > rhs.m_value;
-            }
+			if (rhs.is_end()) return false;
+			if (this->is_end()) return true;
+
+            return m_value > rhs.m_value;
         }
 
         inline bool operator<=(const arithmetic_progression_iterator& rhs)

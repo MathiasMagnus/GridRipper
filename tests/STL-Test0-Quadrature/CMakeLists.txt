@@ -31,8 +31,8 @@ target_link_libraries (${PROJECT_NAME} ${Gripper_ADDITIONAL_LIBS})
 target_include_directories (${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/inc/
                                                    ${Gripper_ADDITIONAL_INCLUDE_DIRS})
 # Enable C++11 language support
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property (TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
+set_property (TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 
 # Create project groups for IDEs
 set_target_properties (${PROJECT_NAME} PROPERTIES FOLDER "Tests//STL")

@@ -111,7 +111,7 @@ option (GR_BUILD_TESTS "Build unit tests" OFF)
 set (Gripper_ADDITIONAL_LIBS)
 set (Gripper_ADDITIONAL_INCLUDE_DIRS)
 
-set (Gripper_ADDITIONAL_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/Gripper/inc/")
+set (Gripper_ADDITIONAL_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/Gripper/inc/")
 
 #
 # Relay control to subprojects
