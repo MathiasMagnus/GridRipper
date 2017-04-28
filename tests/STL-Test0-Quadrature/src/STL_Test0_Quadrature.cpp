@@ -83,13 +83,13 @@ int main()
                        convergence_test(calc_pi, pi, counter{ 2, 100 }, counter{}));
 
 	// Calculate e - 1 by integrating exp
-	auto calc_e_minus_one = [=](integral N) { return math::chebysev2<real>(0, 1, N, exp); };
+	auto calc_e_minus_one = [=](integral N) { return math::chebysev<real>(0, 1, N, exp); };
 
     convergence_report("math::chebysev<real>(0, 1, N, exp)",
                        convergence_test(calc_e_minus_one, e - 1, counter{ 4, 400, 2 }, counter{}));
     
     // Calculate 0 by integrating the cosine function from -pi to pi
-    auto calc_zero = [=](integral N) { return math::chebysev2<real>(-pi, pi, N, cos); };
+    auto calc_zero = [=](integral N) { return math::chebysev<real>(-pi, pi, N, cos); };
 
     convergence_report("math::chebysev<real>(-pi, pi, N, cos)",
                        convergence_test(calc_zero, 0, counter{ 4, 400, 2 }, counter{}));
@@ -97,7 +97,7 @@ int main()
     // Calculate 4pi by integrating the surface integral of the constant 1 function on a sphere of unit radius
     auto calc_4pi = [=](integral M, integral N)
     {
-        return math::chebysev2<real>(0, pi, M, [=](const real theta)
+        return math::chebysev<real>(0, pi, M, [=](const real theta)
         {
             return math::periodic<real>(0, 2 * pi, N, [=](const real phi)
             {

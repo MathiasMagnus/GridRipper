@@ -76,7 +76,7 @@ int main()
                 {
                     floating::scoped_exception_enabler fpe;
 
-                    return std::conj(math::Y_lms(theta, phi, idx.l, idx.m, idx.s)) * f(rho, theta, phi)/* * std::sin(theta)*/;
+                    return std::conj(math::Y_lms(theta, phi, idx.l, idx.m, idx.s)) * f(rho, theta, phi) * std::sin(theta);
                 });
             });
         };
