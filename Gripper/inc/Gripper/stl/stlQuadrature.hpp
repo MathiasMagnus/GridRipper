@@ -30,14 +30,14 @@ namespace math
         using counter_type = stl::arithmetic_progression_iterator<int_type>;
         using result_type = decltype(f(std::declval<Floating>()));
 
-        static constexpr Floating one = static_cast<Floating>(1);
-        static constexpr Floating two = static_cast<Floating>(2);
+        constexpr Floating one = static_cast<Floating>(1);
+        constexpr Floating two = static_cast<Floating>(2);
 
         auto x_i_ab = [=](const int_type i) { return from + i * (to - from) / (n); };
 
-        auto w_i0 = []() { return one; };
-        auto w_in = []() { return one; };
-        auto w_i = [](const int_type) { return two; };
+        auto w_i0 = [=]() { return one; };
+        auto w_in = [=]() { return one; };
+        auto w_i = [=](const int_type) { return two; };
 
         return (std::accumulate(++counter_type{ 0, n },                             // Left boundary condition treated in zero elem
                                 counter_type{},                                     // Right boundary condition treated after std::accumulate
@@ -61,8 +61,9 @@ namespace math
         using counter_type = stl::arithmetic_progression_iterator<int_type>;
         using result_type = decltype(f(std::declval<Floating>()));
     
-        static constexpr Floating one = static_cast<Floating>(1);
-        static constexpr Floating two = static_cast<Floating>(2);
+        constexpr Floating one = static_cast<Floating>(1);
+        constexpr Floating two = static_cast<Floating>(2);
+        constexpr Floating pi = math::constants::pi<Floating>;
 
         /// <notes>
         ///   The original integrator works for input function [-1:1]. We transform this into the input range.
@@ -75,15 +76,15 @@ namespace math
         auto new_x = [=](const Floating& old_val) { return (((old_val - -one) * new_range) / old_range) + from; };
         auto f_new = [=](const Floating& old_x) { return f(new_x(old_x)); };
 
-        auto x_i =   [=](const int_type i) { return std::cos(pi<Floating> * i / n); };
+        auto x_i =   [=](const int_type i) { return std::cos(pi * i / n); };
     
         auto w_i0 = [=]() { return one; };
         auto w_in = [=]() { return one / (1 - n*n); };
         auto w_i  = [=](const int_type i) { return two / (1 - i*i); };
     
-        auto w_ij0 = [=](const int_type i) { return std::cos(pi<Floating> * i * 0 / n) / n; };
-        auto w_ijn = [=](const int_type i) { return std::cos(pi<Floating> * i * n / n) / n; };
-        auto w_ij  = [=](const int_type i, const int_type j) { return two * std::cos(pi<Floating> * i * j / n) / n; };
+        auto w_ij0 = [=](const int_type i) { return std::cos(pi * i * 0 / n) / n; };
+        auto w_ijn = [=](const int_type i) { return std::cos(pi * i * n / n) / n; };
+        auto w_ij  = [=](const int_type i, const int_type j) { return two * std::cos(pi * i * j / n) / n; };
     
         auto inner_sum = [=](const int_type i)
         {

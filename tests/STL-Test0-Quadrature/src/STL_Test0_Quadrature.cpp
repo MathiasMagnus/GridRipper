@@ -12,8 +12,8 @@ int main()
     constexpr real convergence = 1e-6;		// Convergence threshold
 	constexpr real precision = 1e-5;		// Precision requirement
 
-    constexpr auto pi = math::pi<real>;
-	constexpr auto e = math::e<real>;
+    constexpr auto pi = math::constants::pi<real>;
+	constexpr auto e = math::constants::e<real>;
 	const auto const_one = [](const real&) { return (real)1; };
     const auto cos = [](const real& x) { return std::cos(x); };
 	const auto sin_sq = [](const real& x) { auto a = std::sin(x); return a*a; };

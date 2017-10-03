@@ -333,19 +333,19 @@ namespace math
 
             /// <summary>Iterator to the first index inside the extent.</summary>
             ///
-            const_iterator_type cbegin() { return const_iterator_type(_initial); }
+            const_iterator_type cbegin() const { return const_iterator_type(_initial); }
 
             /// <summary>Iterator to one past the last index inside the extent.</summary>
             ///
-            const_iterator_type cend() { return ++const_iterator_type(_final); }
+            const_iterator_type cend() const { return ++const_iterator_type(_final); }
 
             /// <summary>Iterator to the first index inside the extent.</summary>
             ///
-            const_reverse_iterator_type crbegin() { return const_reverse_iterator_type(_final); }
+            const_reverse_iterator_type crbegin() const { return const_reverse_iterator_type(_final); }
 
             /// <summary>Iterator to one past the last index inside the extent.</summary>
             ///
-            const_reverse_iterator_type crend() { return ++const_reverse_iterator_type(_initial); }
+            const_reverse_iterator_type crend() const { return ++const_reverse_iterator_type(_initial); }
 
             // Lattice interface
 

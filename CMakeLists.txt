@@ -10,7 +10,7 @@
 cmake_minimum_required (VERSION 2.8.11)
 
 # The project name and version, release numbers
-project (GridRipper)
+project (GridRipper LANGUAGES CXX)
 set     (GridRipper_VERSION_MAJOR 0)
 set     (GridRipper_VERSION_MINOR 1)
 set     (GridRipper_VERSION_PATCH 0)
@@ -25,10 +25,17 @@ option (GR_BUILD_TESTS "Build unit tests" OFF)
 #
 
   # Append our project's cmake directory to cmake's own module path.
-  set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${Source_Root}/cmake/Modules/")
+  set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/Modules/)
 
   # Use solution folders in IDEs
   set_property (GLOBAL PROPERTY USE_FOLDERS ON)
+
+  # Collect dependencies (let me deal with PackageConfig later)
+  find_package(Mathematica REQUIRED)
+
+  # Set configuration-specific variables
+  set (Gripper_ADDITIONAL_LIBS)
+  set (Gripper_ADDITIONAL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/Gripper/inc/)
 
 #
 # Set platform-specific variables
@@ -58,7 +65,7 @@ option (GR_BUILD_TESTS "Build unit tests" OFF)
 
 	# Enable C++ exception handling (floating point exceptions in Debug builds)
     set (MSVC_CXX_COMPILER_FLAGS_DEBUG "${MSVC_CXX_COMPILER_FLAGS} /EHa")
-    set (MSVC_CXX_COMPILER_FLAGS_RELEASE "${MSVC_CXX_COMPILER_FLAGS} /EHsc")
+    set (MSVC_CXX_COMPILER_FLAGS_RELEASE "${MSVC_CXX_COMPILER_FLAGS} /EHsc /Qpar")
 
     # Disable incremental linking and manifest files for annoying command line errors
     #set (MSVC_CXX_LINKER_FLAGS " /INCREMENTAL:NO /MANIFEST:NO /NOLOGO ")
@@ -104,25 +111,15 @@ option (GR_BUILD_TESTS "Build unit tests" OFF)
   endif (CMAKE_CXX_COMPLIER_ID MATCHES "Clang")
 
 #
-# Collect dependencies (let me deal with PackageConfig later)
-#
-
-# Set configuration-specific variables
-set (Gripper_ADDITIONAL_LIBS)
-set (Gripper_ADDITIONAL_INCLUDE_DIRS)
-
-set (Gripper_ADDITIONAL_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/Gripper/inc/")
-
-#
 # Relay control to subprojects
 #
 
 # Process targets inside project
 #add_subdirectory (Gripper)
 
-#if (GR_BUILD_EXAMPLES)
-#  add_subdirectory (examples)
-#endif (GR_BUILD_EXAMPLES)
+if (GR_BUILD_EXAMPLES)
+  add_subdirectory (examples)
+endif (GR_BUILD_EXAMPLES)
 
 if (GR_BUILD_TESTS)
   enable_testing()

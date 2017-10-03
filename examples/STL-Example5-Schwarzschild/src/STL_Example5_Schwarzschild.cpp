@@ -19,14 +19,17 @@
 #include <STL_Example5_Schwarzschild.hpp>
 
 // Simulation aliases
-using integral = std::int8_t;
+using integral = std::int16_t;
 using real = double;
 using complex = std::complex<real>;
-using spherical_index_internal_type = std::int8_t;
+using spherical_index_internal_type = std::int16_t;
 using spherical_index = math::sws::index<spherical_index_internal_type>;
 using spherical_extent = math::sws::extent<spherical_index_internal_type>;
 template <std::size_t S, math::sws::parity P> using real_coeff_vector = math::sws::vector<S, P, spherical_index_internal_type, real>;
 template <std::size_t S, math::sws::parity P> using complex_coeff_vector = math::sws::vector<S, P, spherical_index_internal_type, complex>;
+
+// Global constants
+constexpr real pi = math::constants::pi<real>;
 
 int main()
 {
@@ -36,15 +39,16 @@ int main()
     //using complex = std::complex<real>; // Type used to represent complex values
     constexpr integral L_max = 5;       // Maximum multipole values for series expansion
     //constexpr integral S_max = 3;       // Maximum spin values for series expansion
-    constexpr real drho = 0.025f;       // Separation of rho coordinates
-    constexpr real rho_min = 3;         // Innermost radial lattice coordinate
+    //constexpr real drho = 0.025f;       // Separation of rho coordinates
+    //constexpr real rho_min = 3;         // Innermost radial lattice coordinate
     //const integral rho_max = 200;        // Coordinate # of outermost lattice site
     //const integral rho_n = 120;          // Coordinate # to start integration from
     constexpr real M = 100.f;               // Black hole mass param
     //const real neumann_length = 0.001f; // Neumann-series expansion precision
 
-    constexpr integral m = 24;      // Evaluation point count for chebysev integral
-    constexpr integral n = 60;      // Evaluation point count for periodic integral
+    constexpr integral max_theta_evals = 50; // Evaluation point count for chebysev integral
+    constexpr integral max_phi_evals = 50;   // Evaluation point count for periodic integral
+    constexpr real convergence = 1e-6;       // Threshold for adaptive convergence test
 
     // Constant definitions
     constexpr real one = 1, two = 2, three = 3, four = 4, eight = 8, one_per_two = one / two, three_per_two = three / two;
@@ -61,50 +65,146 @@ int main()
     };
 
     // Binds the rho parameter of a spherical function or series expansion to a given value
-    auto spherical_surface = [](const auto f, const real rho) { return [=](const real theta, const real phi) { return f(rho, theta, phi); }; };
-    auto expansion_surface = [](const auto f, const real rho) { return [=](const spherical_index idx) { return f(rho, idx); }; };
+    auto spherical_surface = [](const auto f, const real rho)
+    {
+        return [=](const real theta, const real phi) { return f(rho, theta, phi); };
+    };
+    auto expansion_surface = [](const auto f, const real rho)
+    {
+        return [=](const spherical_index idx) { return f(rho, idx); };
+    };
 
     // Expand an analytic spherical function 'f' defined in spherical-coordinates over the spin-weighted spherical harmonics
     // Effectively changes the signature from {rho,theta,phi} to {rho,{l,m,s}}
-    auto series_expand = [=](const auto f, int M, int N)
+    // Uses fixed count function evaluations (assumes worst case scenario)
+    auto series_expand = [=,
+                          m = max_theta_evals,
+                          n = max_phi_evals](const auto f)
     {
         return [=](const real rho, const spherical_index idx)
         {
-            return math::chebysev<real>(0, math::pi<real>, M, [=](const real& theta)
+            return math::chebysev<real>(0, pi, m, [=](const real& theta)
             {
-                return math::periodic<real>(0, 2 * math::pi<real>, N, [=](const real& phi)
+                return math::periodic<real>(0, 2 * pi, n, [=](const real& phi)
                 {
+#ifdef _DEBUG
                     floating::scoped_exception_enabler fpe;
-
-                    return std::conj(math::Y_lms(theta, phi, idx.l, idx.m, idx.s)) * f(rho, theta, phi) * std::sin(theta);
+#endif
+                    //return std::conj(math::Y_lms(theta, phi, idx.l, idx.m, idx.s)) * f(rho, theta, phi) * std::sin(theta);
+                    return std::conj(math::Y_lms(theta, phi, idx.l, idx.m, idx.s)) * f(rho, theta, phi) * std::pow(rho, 2) * std::sin(theta);
                 });
             });
         };
     };
-    /*
-    // Reduce a spin-weighted spherical expansion to the original analytic spherical function
-    // Effectively changes the signature from {rho,{l,m,s}} to {rho,theta,phi}
-    auto reduce_series = [](const auto f)
-    {
-        return [](const real rho, const real theta, const phi)
-        {
-            using F = decltype(f);
 
-            return std::accumulate(f.extent().begin(), f.extent().end(), )
+    auto adaptive_series_expand = [=](const auto f)
+    {
+        using counter = stl::arithmetic_progression_iterator<integral>; // Iterator used as series of numbers
+
+        auto converge_2d = [=](auto g, counter from1, counter to1, counter from2, counter to2)
+        {
+            std::result_of_t<decltype(g)(const integral&, const integral&)> res = 0;
+            counter it2 = to2;
+            counter it1 = std::adjacent_find(from1, to1, [=, &it2, &res](const integral& n1, const integral& m1) mutable
+            {
+                std::cout << "converge_2d it1 at [n1,m1]=[" << n1 << "," << m1 << "] with res = " << res << std::endl;
+                it2 = std::find_if(from2, to2, [=, &res](const integral& i2) mutable
+                {
+                    //return std::abs(g(n1, i2) - (res = g(m1, i2))) < convergence;
+
+                    //return std::abs(g(n1, i2) - g(m1, i2)) < convergence;
+
+                    std::cout << "converge_2d it2 at " << i2 << std::endl;
+                    auto gn1i2 = g(n1, i2);
+                    auto gm1i2 = g(m1, i2);
+                    res = gm1i2;
+                    auto diff = std::abs(gn1i2 - gm1i2);
+
+                    if (diff > 1e15)
+                        std::clog << "Something's fishy!" << std::endl;
+                    
+                    return diff < convergence;
+                });
+
+                if (it2 != to2)
+                    return true;
+                else
+                    return false;
+            });
+
+            if (it1 == to1)
+                //throw std::runtime_error{ "Function did not converge on the specified index ranges." };
+                std::clog << "Quadrature did not converge on target with precision " << convergence << std::endl;
+
+            if (it2 == to2)
+                throw std::logic_error{ "it2 is not expected to be end iterator if it1 was not." };
+
+            //return g(*it1, *it2);
+            return res;
+        };
+
+        return [=](const real rho, const spherical_index idx)
+        {
+            auto expand_f = [=](integral m, integral n)
+            {
+                return math::chebysev<real>(0, pi, m, [=](const real& theta)
+                {
+                    return math::periodic<real>(0, 2 * pi, n, [=](const real& phi)
+                    {
+                        floating::scoped_exception_enabler fpe;
+
+                        auto base = math::Y_lms(theta, phi, idx.l, idx.m, idx.s);
+                        auto s = std::sin(theta);
+
+                        if (std::abs(base * s) > 1e10)
+                            std::clog << "Root of fishy!" << std::endl;
+
+                        return std::conj(math::Y_lms(theta, phi, idx.l, idx.m, idx.s)) * f(rho, theta, phi) * std::pow(rho, 2) * std::sin(theta);
+                    });
+                });
+            };
+
+            return converge_2d(expand_f, counter{ 2, max_theta_evals, 2 }, counter{}, counter{ 2, max_phi_evals }, counter{});
         };
     };
-    */
-    using namespace math::sws;
-
-    real_coeff_vector<0, parity::even> a{ L_max };
-    real_coeff_vector<0, parity::even> b{ L_max };
-
-    real_coeff_vector<0, parity::even> c;
     
-    c = -a;
-    c = a + b;
+    // Reduce a spin-weighted spherical expansion to the original analytic spherical function
+    // Effectively changes the signature from {rho,{l,m,s}} to {rho,theta,phi}
+    auto reduce_series = [=](const auto f)
+    {
+        return [=,
+                ext = spherical_extent({ 0, 0, 0 },
+                                       { L_max, L_max, 0 })](const real rho,
+                                                             const real theta,
+                                                             const real phi)
+        {
+            using F = decltype(f);
+            using T = std::result_of_t<F(const real, const spherical_index)>;
 
-    complex_coeff_vector<0, parity::even> d{ L_max };
+            return std::real(std::accumulate(ext.cbegin(),
+                                             ext.cend(),
+                                             static_cast<T>(0),
+                                             [=](const T& cum_sum,
+                                                 const spherical_index& idx)
+            {
+                //std::cout << "reduce_series at " << idx << std::endl;
+
+                return cum_sum + f(rho, idx);
+            }));
+        };
+    };
+    
+    //using namespace math::sws;
+    //
+    //real_coeff_vector<0, parity::even> a{ L_max };
+    //real_coeff_vector<0, parity::even> b{ L_max };
+    //
+    //real_coeff_vector<0, parity::even> c;
+    //
+    //c = -a;
+    //c = a + b;
+    //
+    //complex_coeff_vector<0, parity::even> d{ L_max };
 
     // Transform f(rho,theta,phi) initial condition to a coefficient vector of a_{l,m,s}
     //std::transform(d.extent().cbegin(),
@@ -115,7 +215,10 @@ int main()
 
     auto Y_000 = [](real, // rho
                     real theta,
-                    real phi) { return math::Y_lms(theta, phi, 0, 0, 0); };
+                    real phi)
+    {
+        return math::Y_lms(theta, phi, 0, 0, 0);
+    };
 
     auto const_one = [](real, // rho
                         real, // theta
@@ -124,27 +227,71 @@ int main()
         return 1.;
     };
 
-    auto calc_4pi = [=](const auto f, int M, int N)
+    auto ellipsoid = [](real x,
+                        real y,
+                        real z)
     {
-        return math::chebysev<real>(0, math::pi<real>, M, [=](const real& theta)
-        {
-            return math::periodic<real>(0, 2 * math::pi<real>, N, [=](const real& phi)
-            {
-                return const_one(0, theta, phi) * std::sin(theta);
-            });
-        });
+        constexpr real a = (real)1.1;
+        constexpr real b = (real)1.1;
+        constexpr real c = (real)1.1;
+
+        return std::sqrt(std::pow(a * x, 2) + std::pow(b * y, 2) + std::pow(c * z, 2));
     };
-    
-    std::ofstream out( "out.dat", std::ios::ate | std::ios::app );
 
-    for (int m = 4; m < 40; m += 2)
-        for (int n = 4; n < 40; n += 2)
+    auto descartes_to_spherical = [](const auto f)
+    {
+        return [=](const real rho,
+                   const real theta,
+                   const real phi)
         {
-            std::cout << m << " " << n << std::endl;
-            out << m << "\t" << n << "\t" << calc_4pi(const_one, m, n) << std::endl;
-        }
-            
+            return f(rho*std::sin(theta)*std::cos(phi),
+                     rho*std::sin(theta)*std::sin(phi),
+                     rho*std::cos(theta));
+        };
+    };
 
+    auto spherical_to_descartes = [](const auto f)
+    {
+        return [=](const real x, const real y, const real z)
+        {
+            /// <cite>http://keisan.casio.com/exec/system/1359533867</cite>
+            return f(std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)),
+                     (real)1 / std::tan(y / x),
+                     (real)1 / std::tan(std::sqrt(std::pow(x, 2) + std::pow(y, 2)) / z));
+        };
+    };
+
+    //auto reconstructed_ellipsoid = spherical_to_descartes(reduce_series(adaptive_series_expand(descartes_to_spherical(ellipsoid))));
+
+    std::ofstream out("out.dat", std::ios::ate | std::ios::app);
+
+    for (real theta = 0; theta <= math::constants::pi<real>; theta += math::constants::pi<real> / 100)
+        for (real phi = 0; phi <= 2 * math::constants::pi<real>; phi += 2 * math::constants::pi<real> / 100)
+        {
+            std::cout << theta << '\t' << phi << std::endl;
+            constexpr real rho = 1.0;
+
+            auto origi = descartes_to_spherical(ellipsoid);
+            auto trans = reduce_series(adaptive_series_expand(origi));
+
+            auto origi_val = origi(rho, theta, phi);
+            auto trans_val = trans(rho, theta, phi);
+
+            std::cout <<
+                theta << '\t' <<
+                phi << '\t' <<
+                origi_val << '\t' <<
+                trans_val <<
+                std::endl;
+        }
+
+    out.close();
+
+    //std::cout << Y_000(0, 0, 0) << "\t" << one_per_two * std::sqrt(one / math::pi<real>) << std::endl;
+    //std::cout << adaptive_series_expand(const_one)(1, { 0, 0, 0 }) << "\t" << one_per_two * std::sqrt(one / math::pi<real>) * 4 * math::pi<real> << std::endl;
+    
+    //std::ofstream out( "out.dat", std::ios::ate | std::ios::app );      
+    //
     //for (real theta = 0; theta <= math::pi<real>; theta += math::pi<real> / 100)
     //    for (real phi = 0; phi <= 2 * math::pi<real>; phi += 2 * math::pi<real> / 100)
     //        out <<
@@ -152,8 +299,8 @@ int main()
     //        phi << "\t" <<
     //        Y_000(0, theta, phi).real() << "\t" <<
     //        Y_000(0, theta, phi).imag() << std::endl;
-
-    out.close();
+    //
+    //out.close();
     
     //std::cout << Y_000(0, M_PI, M_PI) << "\t" <<
     //    0.5 * std::sqrt(1. / M_PI) << "\t" <<
